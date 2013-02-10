@@ -8,6 +8,7 @@ using System.Web;
 using System.Web.Security;
 using System.Web.UI;
 using CookComputing.XmlRpc;
+using DotNetNuke.Entities.Portals;
 using DotNetNuke.Entities.Users;
 using DotNetNuke.Modules.ActiveForums;
 using DotNetNuke.Modules.ActiveForumsTapatalk.Classes;
@@ -17,13 +18,14 @@ using DotNetNuke.Security.Membership;
 using DotNetNuke.Services.Social.Notifications;
 using HtmlAgilityPack;
 
-
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 {
     [XmlRpcService(Name = "ActiveForums.Tapatalk", Description = "Tapatalk Service For Active Forums", UseIntTag = true, AppendTimezoneOffset = true)]
     public class TapatalkAPIHandler : XmlRpcService
     {
-        // Forum API
+        private enum ProcessModes { Normal, TextOnly, Quote }
+
+        #region Forum API
 
         [XmlRpcMethod("get_config")]
         public XmlRpcStruct GetConfig()
@@ -43,10 +45,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                     {"api_level", "3"},
                                     {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
                                     {"disable_bbcode", "0"},
-                                    {"reg_url", "/register"},
-                                    {"charset", "UTF-8"}
-                                    //{"disable_html", "1"},
-                                    //{"announcement", "1"}
+                                    {"reg_url", "register.aspx"},
+                                    {"charset", "UTF-8"},
+                                    {"subscribe_forum", "1"},
+                                    {"can_unread", "0"},
+                                    {"announcement", "1"},
+                                    {"conversation", "0"},
+                                    {"inbox_stat", "0"}
                                 };        
 
             return rpcstruct;
@@ -187,12 +192,32 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return result.ToArray();
         }
 
+        #endregion
 
-        // Topic API
+        #region Topic API
 
         [XmlRpcMethod("get_topic")]
         public TopicListStructure  GetTopic(params object[] parameters)
         {
+            if(parameters[0].ToString().StartsWith("G"))
+            {
+                var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+                if (aftContext == null || aftContext.Module == null)
+                    throw new XmlRpcFaultException(100, "Invalid Context");
+
+                Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+                return new TopicListStructure
+                {
+                    CanPost = false,
+                    ForumId = parameters[0].ToString(),
+                    ForumName = "test",
+                    TopicCount = 0
+                };
+            }
+
+
             if (parameters.Length == 3)
                 return GetTopic(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]));
             
@@ -413,23 +438,23 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
             catch(Exception ex)
             {
-                DotNetNuke.Services.Exceptions.Exceptions.LogException(ex); 
+                Services.Exceptions.Exceptions.LogException(ex); 
             }
 
 
-            var rpcstruct = new XmlRpcStruct
-                                {
-                                    {"result", "true"}, //"true" for success
-                                    {"result_text", "Test Mode".ToBytes()}, 
-                                    {"topic_id", "5000"},
-                                   // {"state", 0}, // 1 if moderation required
-                                };
+            return new XmlRpcStruct
+            {
+                {"result", "true"}, //"true" for success
+                {"result_text", string.Empty.ToBytes()}, 
+                {"topic_id", ti.TopicId.ToString()},
+                {"state", isApproved ? 0 : 1 },
+            };
 
-            return rpcstruct;
         }
 
+        #endregion
 
-        // Post API
+        #region Post API
 
         [XmlRpcMethod("get_thread")]
         public PostListStructure GetThread(params object[] parameters)
@@ -458,8 +483,6 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             if(forumId <= 0)
                 throw new XmlRpcFaultException(100, "Invalid Topic");
-
-            
 
             var fp = fc.GetForumPermissions(forumId);
 
@@ -514,7 +537,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                  TopicId = topicId,
                                  Posts = forumPosts.Select(p => new PostStructure
                                     {
-                                          PostID = p.ReplyId > 0 ? p.ReplyId : p.TopicId,
+                                          PostID = p.ContentId.ToString(),
                                           AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
                                           AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
                                           Body = HtmlToTapatalk(p.Body).ToBytes(),
@@ -532,7 +555,15 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
 
         [XmlRpcMethod("get_quote_post")]
-        public XmlRpcStruct GetQuote(string post_id)
+        public XmlRpcStruct GetQuote(params object[] parameters)
+        {
+            if (parameters.Length >= 1)
+                return GetQuote(Convert.ToInt32(parameters[0]));
+
+            throw new XmlRpcFaultException(100, "Invalid Method Signature");
+        }
+
+        private XmlRpcStruct GetQuote(int contentId)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -541,18 +572,218 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+
+            var fc = new AFTForumController();
+
+            // Retrieve the forum post
+            var forumPost = fc.GetForumPost(portalId, forumModuleId, contentId);
+
+            if(forumPost == null)
+                throw new XmlRpcFaultException(100, "Bad Request");
+
+            // Verify read permissions
+            var fp = fc.GetForumPermissions(forumPost.ForumId);
+
+            if (!ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanRead))
+                throw new XmlRpcFaultException(100, "No Read Permissions");
+
+            // Load our forum settings
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            // Build our sanitized quote
+            var postedByTemplate = Utilities.GetSharedResource("[RESX:PostedBy]") + " {0} {1} {2}";
+
+            var postedBy = string.Format(postedByTemplate, GetAuthorName(mainSettings, forumPost), Utilities.GetSharedResource("On.Text"), GetServerDateTime(mainSettings, forumPost.DateCreated));
+            var result = HtmlToTapatalkQuote(postedBy, forumPost.Body);
+
+            // Return the result
             return new XmlRpcStruct
-                                {
-                                    {"post_id", post_id},
-                                    {"post_title", "".ToBytes()}, 
-                                    {"post_content", "[quote]Some post content that's been quoted[/quote]".ToBytes()}
-                                };
+            {
+                {"post_id", contentId.ToString()},
+                {"post_title", ("RE: " + forumPost.Subject).ToBytes()}, 
+                {"post_content", result.ToBytes()}
+            };
         }
 
-        // User API
+        [XmlRpcMethod("reply_post")]
+        public XmlRpcStruct Reply(params object[] parameters)
+        {
+            if (parameters.Length >= 4)
+            {
+                var forumId = Convert.ToInt32(parameters[0]);
+                var topicId = Convert.ToInt32(parameters[1]);
+                var subject = Encoding.Default.GetString((byte[])parameters[2]);
+                var body = Encoding.Default.GetString((byte[])parameters[3]);
+
+                return Reply(forumId, topicId, subject, body);
+            }
+
+            throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+        }
+
+        private XmlRpcStruct Reply(int forumId, int topicId, string subject, string body)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+
+            var fc = new ForumController();
+
+            var forumInfo = fc.GetForum(portalId, forumModuleId, forumId);
+
+            // Verify Post Permissions
+            if (!ActiveForums.Permissions.HasPerm(forumInfo.Security.Reply, aftContext.ForumUser.UserRoles))
+            {
+                return new XmlRpcStruct
+                                {
+                                    {"result", "false"}, //"true" for success
+                                    {"result_text", "Not Authorized to Reply".ToBytes()}, 
+                                };
+            }
+
+            // Build User Permissions
+            var canModApprove = ActiveForums.Permissions.HasPerm(forumInfo.Security.ModApprove, aftContext.ForumUser.UserRoles);
+            var canTrust = ActiveForums.Permissions.HasPerm(forumInfo.Security.Trust, aftContext.ForumUser.UserRoles);
+            var canDelete = ActiveForums.Permissions.HasPerm(forumInfo.Security.Delete, aftContext.ForumUser.UserRoles);
+            var canModDelete = ActiveForums.Permissions.HasPerm(forumInfo.Security.ModDelete, aftContext.ForumUser.UserRoles);
+            var canEdit = ActiveForums.Permissions.HasPerm(forumInfo.Security.Edit, aftContext.ForumUser.UserRoles);
+            var canModEdit = ActiveForums.Permissions.HasPerm(forumInfo.Security.ModEdit, aftContext.ForumUser.UserRoles);
+
+            var userProfile = aftContext.UserId > 0 ? aftContext.ForumUser.Profile : new UserProfileInfo { TrustLevel = -1 };
+            var userIsTrusted = Utilities.IsTrusted((int)forumInfo.DefaultTrustValue, userProfile.TrustLevel, canTrust, forumInfo.AutoTrustLevel, userProfile.PostCount);
+
+            // Determine if the post should be approved
+            var isApproved = !forumInfo.IsModerated || userIsTrusted || canModApprove;
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var dnnUser = Entities.Users.UserController.GetUserById(portalId, aftContext.UserId);
+
+            var authorName = GetAuthorName(mainSettings, dnnUser);
+
+            var themePath = string.Format("{0}://{1}{2}", Context.Request.Url.Scheme, Context.Request.Url.Host, VirtualPathUtility.ToAbsolute("~/DesktopModules/activeforums/themes/" + mainSettings.Theme + "/"));
+
+            subject = Utilities.CleanString(portalId, subject, false, EditorTypes.TEXTBOX, forumInfo.UseFilter, false, forumModuleId, themePath, false);
+            body = Utilities.CleanString(portalId, TapatalkToHtml(body), forumInfo.AllowHTML, EditorTypes.HTMLEDITORPROVIDER, forumInfo.UseFilter, false, forumModuleId, themePath, forumInfo.AllowEmoticons);
+
+            var dt = DateTime.Now;
+
+            var ri = new ReplyInfo();
+            ri.Content.DateCreated = dt;
+            ri.Content.DateUpdated = dt;
+            ri.Content.AuthorId = aftContext.UserId;
+            ri.Content.AuthorName = authorName;
+            ri.Content.IPAddress = Context.Request.UserHostAddress;
+            ri.Content.Subject = subject;
+            ri.Content.Summary = string.Empty;
+            ri.Content.Body = body;
+            ri.TopicId = topicId;
+            ri.IsApproved = isApproved;
+            ri.IsDeleted = false;
+            ri.StatusId = -1;
+
+            // Save the topic
+            var rc = new ReplyController();
+            var replyId = rc.Reply_Save(portalId, ri);
+            ri = rc.Reply_Get(portalId, forumModuleId, topicId, replyId);
+
+            if (ri == null)
+            {
+                return new XmlRpcStruct
+                                {
+                                    {"result", "false"}, //"true" for success
+                                    {"result_text", "Error Creating Post".ToBytes()}, 
+                                };
+            }
+
+            try
+            {
+                // Clear the cache
+                var cachekey = string.Format("AF-FV-{0}-{1}", portalId, forumModuleId);
+                DataCache.CacheClearPrefix(cachekey);
+
+                // Subscribe the user if they have auto-subscribe set.
+                if (userProfile.PrefSubscriptionType != SubscriptionTypes.Disabled && !(Subscriptions.IsSubscribed(portalId, forumModuleId, forumId, topicId, SubscriptionTypes.Instant, aftContext.UserId)))
+                {
+                    new SubscriptionController().Subscription_Update(portalId, forumModuleId, forumId, topicId, (int)userProfile.PrefSubscriptionType, aftContext.UserId, aftContext.ForumUser.UserRoles);
+                }
+
+                if (isApproved)
+                {
+                    // Send User Notifications
+                    Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, 0, ri.Content.AuthorId);
+                }
+                else
+                {
+                    // Send Mod Notifications
+                    var mods = Utilities.GetListOfModerators(portalId, forumId);
+                    var notificationType = NotificationsController.Instance.GetNotificationType("AF-ForumModeration");
+                    var notifySubject = Utilities.GetSharedResource("NotificationSubjectReply");
+                    notifySubject = notifySubject.Replace("[DisplayName]", dnnUser.DisplayName);
+                    notifySubject = notifySubject.Replace("[TopicSubject]", ri.Content.Subject);
+                    var notifyBody = Utilities.GetSharedResource("NotificationBodyReply");
+                    notifyBody = notifyBody.Replace("[Post]", ri.Content.Body);
+                    var notificationKey = string.Format("{0}:{1}:{2}:{3}:{4}", aftContext.ModuleSettings.ForumTabId, forumModuleId, forumId, topicId, replyId);
+
+                    var notification = new Notification
+                    {
+                        NotificationTypeID = notificationType.NotificationTypeId,
+                        Subject = notifySubject,
+                        Body = notifyBody,
+                        IncludeDismissAction = false,
+                        SenderUserID = dnnUser.UserID,
+                        Context = notificationKey
+                    };
+
+                    NotificationsController.Instance.SendNotification(notification, portalId, null, mods);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Services.Exceptions.Exceptions.LogException(ex);
+            }
+
+
+            return new XmlRpcStruct
+            {
+                {"result", "true"}, //"true" for success
+                {"result_text", string.Empty.ToBytes()}, 
+                {"post_id", ri.ContentId.ToString()},
+                {"state", isApproved ? 0 : 1 },
+                {"post_content", HtmlToTapatalk(ri.Content.Body).ToBytes() },
+                {"can_edit", canEdit || canModEdit },
+                {"can_delete", canDelete || canModDelete },
+                {"post_time", dt},
+                {"attachments", new {}}
+            };
+
+
+        }
+
+
+        #endregion
+
+        #region User API
 
         [XmlRpcMethod("login")]
-        public XmlRpcStruct Login(byte[] login_name, byte[] password)
+        public XmlRpcStruct Login(params object[] parameters)
+        {
+            if (parameters.Length < 2)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var login = Encoding.Default.GetString((byte[]) parameters[0]);
+            var password = Encoding.Default.GetString((byte[]) parameters[1]);
+
+            return Login(login, password);
+        }
+
+        public XmlRpcStruct Login(string login, string password)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -561,10 +792,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var loginStatus = UserLoginStatus.LOGIN_FAILURE;
 
-            var strLogin = Encoding.Default.GetString(login_name);
-            var strPassword = Encoding.Default.GetString(password);
-
-            Entities.Users.UserController.ValidateUser(aftContext.Portal.PortalID, strLogin, strPassword, string.Empty, aftContext.Portal.PortalName, Context.Request.UserHostAddress, ref loginStatus);
+            Entities.Users.UserController.ValidateUser(aftContext.Portal.PortalID, login, password, string.Empty, aftContext.Portal.PortalName, Context.Request.UserHostAddress, ref loginStatus);
 
             var result = false;
             var resultText = string.Empty;
@@ -597,7 +825,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             if(result)
             { 
                 // Get the User
-                var userInfo = Entities.Users.UserController.GetUserByName(aftContext.Module.PortalID, strLogin);
+                var userInfo = Entities.Users.UserController.GetUserByName(aftContext.Module.PortalID, login);
 
                 if(userInfo == null)
                 {
@@ -609,7 +837,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     // Set Login Cookie
                     var expiration = DateTime.Now.Add(FormsAuthentication.Timeout); 
 
-                    var ticket = new FormsAuthenticationTicket(1, strLogin, DateTime.Now, expiration, false, userInfo.UserID.ToString());
+                    var ticket = new FormsAuthenticationTicket(1, login, DateTime.Now, expiration, false, userInfo.UserID.ToString());
                     var authCookie = new HttpCookie(aftContext.AuthCookieName, FormsAuthentication.Encrypt(ticket))
                     {
                         Domain = FormsAuthentication.CookieDomain,
@@ -654,8 +882,102 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             Context.Response.SetCookie(authCookie);
         }
 
+        #endregion
 
-        // Helper Methods
+        #region Subscribe API
+
+        [XmlRpcMethod("subscribe_forum")]
+        public XmlRpcStruct SubscribeForum(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var forumId = Convert.ToInt32(parameters[0]);
+
+            return Subscribe(forumId, null, false);
+        }
+
+        [XmlRpcMethod("subscribe_topic")]
+        public XmlRpcStruct SubscribeTopic(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var topicId = Convert.ToInt32(parameters[0]);
+
+            return Subscribe(null, topicId, false);
+        }
+
+        [XmlRpcMethod("unsubscribe_forum")]
+        public XmlRpcStruct UnsubscribeForum(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var forumId = Convert.ToInt32(parameters[0]);
+
+            return Subscribe(forumId, null, true);
+        }
+
+        [XmlRpcMethod("unsubscribe_topic")]
+        public XmlRpcStruct UnsubscribeTopic(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var topicId = Convert.ToInt32(parameters[0]);
+
+            return Subscribe(null, topicId, true);
+        }
+
+        private XmlRpcStruct Subscribe(int? forumId, int? topicId, bool unsubscribe)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            if (!forumId.HasValue && !topicId.HasValue)
+                return new XmlRpcStruct{{"result", "0"},{"result_text", "Bad Request".ToBytes()}};
+
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+
+            // Look up the forum Id if needed
+            if(!forumId.HasValue)
+            {
+                var ti = new TopicsController().Topics_Get(portalId, forumModuleId, topicId.Value);
+                if(ti == null)
+                    return new XmlRpcStruct { { "result", false }, { "result_text", "Topic Not Found".ToBytes() } };
+
+                var post = new AFTForumController().GetForumPost(portalId, forumModuleId, ti.ContentId);
+                if(post == null)
+                    return new XmlRpcStruct { { "result", false }, { "result_text", "Topic Post Not Found".ToBytes() } };
+
+                forumId = post.ForumId;
+            }
+
+            var subscriptionType = unsubscribe ? SubscriptionTypes.Disabled : SubscriptionTypes.Instant;
+
+            var sub = new SubscriptionController().Subscription_Update(portalId, forumModuleId, forumId.Value, topicId.HasValue ? topicId.Value : -1, (int)subscriptionType, aftContext.UserId, aftContext.ForumUser.UserRoles);
+
+            var result = (sub >= 0) ? "1" : "0";
+
+            return new XmlRpcStruct
+            {
+                {"result", result},
+                {"result_text", string.Empty.ToBytes()}, 
+            };
+        }
+    
+
+        #endregion
+
+
+        #region Private Helper Methods
 
         private static string GetSummary(string summary, string body)
         {
@@ -672,14 +994,23 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
         private static string TapatalkToHtml(string input)
         {
-            input = input.Replace("\n", "<br />");
+            input = input.Replace("<", "&lt;");
+            input = input.Replace(">", "&gt;");
+            
+            input = input.Trim(new [] {' ', '\n', '\r', '\t'}).Replace("\n", "<br />");
 
-            input = Regex.Replace(input, @"\[img\](.+)\[\/img\]", "<img src='$1' />", RegexOptions.IgnoreCase);
-            input = Regex.Replace(input, @"\[url\](.+)\[\/url\]", "<a href='$1'>$1</a>", RegexOptions.IgnoreCase);
-            input = Regex.Replace(input, @"\[quote\=(.+)\](.+)\[\/quote\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>Originaly Posted By <span class='afQuoteAuthor'>$1</span></span><br />$2</blockquote>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            input = Regex.Replace(input, @"\[quote\](.+)\[\/quote\]", "<blockquote class='afQuote'>$1</blockquote>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            input = Regex.Replace(input, @"\[b\](.+)\[\/b\]", "<strong>$1</strong>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            input = Regex.Replace(input, @"\[i\](.+)\[\/i\]", "<i>$1</i>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[quote\=\'([^\]]+?)\'\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[quote\=\""([^\]]+?)\""\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[quote\=([^\]]+?)\]",  "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[quote\]", "<blockquote class='afQuote'>", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[\/quote\]", "</blockquote>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[img\](.+?)\[\/img\]", "<img src='$1' />", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[url=\'(.+?)\'\](.+?)\[\/url\]", "<a href='$1'>$2</a>", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[url=\""(.+?)\""\](.+?)\[\/url\]", "<a href='$1'>$2</a>", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[url=(.+?)\](.+?)\[\/url\]", "<a href='$1'>$2</a>", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[url\](.+?)\[\/url\]", "<a href='$1'>$1</a>", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\[(\/)?b\]", "<$1strong>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[(\/)?i\]", "<$1i>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
             return input;
         }
@@ -696,38 +1027,55 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var tapatalkMarkup = new StringBuilder();
 
-            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode);
+            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Normal);
 
-            tapatalkMarkup.Replace("&nbsp;", " ");
-
-            var result = tapatalkMarkup.ToString();
-
-            return result;
+            return tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' });
         }
 
-        private static void ProcessNodes(StringBuilder output, IEnumerable<HtmlNode> nodes, bool textOnly = false)
+        private static string HtmlToTapatalkQuote(string postedBy, string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return input;
+
+            input = Regex.Replace(input, @"\s+", " ", RegexOptions.Multiline);
+
+            var htmlBlock = new HtmlDocument();
+            htmlBlock.LoadHtml(input);
+
+            var tapatalkMarkup = new StringBuilder();
+
+            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Quote);
+
+            return string.Format("[quote={0}]\n{1}\n[/quote]\n", postedBy, tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' }));
+        }
+
+        private static void ProcessNodes(StringBuilder output, IEnumerable<HtmlNode> nodes, ProcessModes mode)
         {
             foreach (var node in nodes)
-                ProcessNode(output, node);
+                ProcessNode(output, node, mode);
         }
 
-        private static void ProcessNode(StringBuilder output, HtmlNode node, bool textOnly = false)
+        private static void ProcessNode(StringBuilder output, HtmlNode node, ProcessModes mode)
         {
-            const string lineBreak = "<br /> ";
+            var lineBreak = (mode == ProcessModes.Quote) ? "\n" : "<br /> ";
 
-            if (node == null || output == null || (textOnly && node.Name != "#text"))
+            if (node == null || output == null || (mode == ProcessModes.TextOnly && node.Name != "#text"))
                 return;
 
             switch (node.Name)
             {
                 // No action needed for these node types
                 case "#text":
-                    var text = HttpUtility.HtmlDecode(node.InnerHtml).Replace("<", "&lt;").Replace(">", "&gt;");
+                    var text = HttpUtility.HtmlDecode(node.InnerHtml);
+                    if (mode != ProcessModes.Quote)
+                        text = text.Replace("<", "&lt;").Replace(">", "&gt;");
                     output.Append(text);
                     return;
 
                 case "table":
-                    output.Append("<br /> { Table Removed } <br />");
+                    output.Append(lineBreak);
+                    output.Append(" { Table Removed } ");
+                    output.Append(lineBreak);
                     return;
 
                 case "script":
@@ -735,44 +1083,77 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
                 case "ol":
                 case "ul":
+
+                    if(mode != ProcessModes.Normal)
+                        return;
+
                     output.Append(lineBreak);
-                    ProcessNodes(output, node.ChildNodes, textOnly);
+                    ProcessNodes(output, node.ChildNodes, mode);
                     output.Append(lineBreak);
                     return;
 
                 case "li":
+
+                    if(mode == ProcessModes.Quote)
+                        return; 
+
                     output.Append("* ");
-                    ProcessNodes(output, node.ChildNodes, textOnly);
+                    ProcessNodes(output, node.ChildNodes, mode);
                     output.Append(lineBreak);
                     return;
 
                 case "p":
-                    output.Append("<p>");
-                    ProcessNodes(output, node.ChildNodes, textOnly);
-                    output.Append("</p><br />");
+                    ProcessNodes(output, node.ChildNodes, mode);
+                    output.Append(lineBreak);
+                    output.Append(lineBreak);
                     return;
 
                 case "b":
                 case "strong":
-                    output.Append("<b>");
-                    ProcessNodes(output, node.ChildNodes, textOnly);
-                    output.Append("</b>");
+
+                    if(mode != ProcessModes.Quote)
+                    {
+                        output.Append("<b>");
+                        ProcessNodes(output, node.ChildNodes, mode);
+                        output.Append("</b>");
+                    }
+                    else
+                    {
+                        output.Append("[b]");
+                        ProcessNodes(output, node.ChildNodes, mode);
+                        output.Append("[/b]");
+                    }
+
                     return;
 
                 case "i":
-                    output.Append("<i>");
-                    ProcessNodes(output, node.ChildNodes, textOnly);
-                    output.Append("</i>");
+                    if(mode != ProcessModes.Quote)
+                    {
+                        output.Append("<i>");
+                        ProcessNodes(output, node.ChildNodes, mode);
+                        output.Append("</i>");
+                    }
+                    else
+                    {
+                        output.Append("[i]");
+                        ProcessNodes(output, node.ChildNodes, mode);
+                        output.Append("[/i]");
+                    }
+
                     return;
 
                 case "blockquote":
+
+                    if(mode != ProcessModes.Normal)
+                        return;
+
                     output.Append("[quote]");
-                    ProcessNodes(output, node.ChildNodes, textOnly);
+                    ProcessNodes(output, node.ChildNodes, mode);
                     output.Append("[/quote]" + lineBreak);
                     return;
 
                 case "br":
-                    output.Append("<br />");
+                    output.Append(lineBreak);
                     return;
 
 
@@ -782,7 +1163,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     if (src == null || string.IsNullOrWhiteSpace(src.Value))
                         return;
 
-                    output.AppendFormat(src.Value.IndexOf("emoticon", 0, StringComparison.InvariantCultureIgnoreCase) >= 0 ? "<img src='{0}' />" : "[img]{0}[/img]", src.Value);
+                    var isEmoticon = src.Value.IndexOf("emoticon", 0, StringComparison.InvariantCultureIgnoreCase) >= 0;
+
+                    if(mode == ProcessModes.Quote && isEmoticon)
+                        return;
+
+                    output.AppendFormat(isEmoticon ? "<img src='{0}' />" : "[img]{0}[/img]", src.Value);
 
                     return;
 
@@ -793,14 +1179,14 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.AppendFormat("[url={0}]", href.Value);
-                    ProcessNodes(output, node.ChildNodes, true);
+                    ProcessNodes(output, node.ChildNodes, ProcessModes.TextOnly); 
                     output.Append("[/url]");
 
                     return;
 
             }
 
-            ProcessNodes(output, node.ChildNodes);
+            ProcessNodes(output, node.ChildNodes, mode);
         }
 
         private static string GetAuthorName(SettingsInfo settings, UserInfo user)
@@ -865,6 +1251,24 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
 
         }
+
+        private static string GetServerDateTime(SettingsInfo settings, DateTime displayDate)
+        {
+            //Dim newDate As Date 
+            string dateString;
+            try
+            {
+                dateString = displayDate.ToString(settings.DateFormatString + " " + settings.TimeFormatString);
+                return dateString;
+            }
+            catch (Exception ex)
+            {
+                dateString = displayDate.ToString();
+                return dateString;
+            }
+        }
+
+        #endregion
 
     }
 }

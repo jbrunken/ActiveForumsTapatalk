@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-using CookComputing.XmlRpc;
+﻿using CookComputing.XmlRpc;
 
-namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
+namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {
     [XmlRpcMissingMapping(MappingAction.Ignore)]
     public struct ForumStructure
