@@ -112,24 +112,75 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BasicSettings.Text" xml:space="preserve">
+    <value>Module Settings</value>
+  </data>
   <data name="ControlTitle_settings.Text" xml:space="preserve">
-    <value>ActiveForumsTapatalk Settings</value>
+    <value>Active Forums Tapatalk Settings</value>
   </data>
-  <data name="lblSetting1.Help" xml:space="preserve">
-    <value>Put your value for Setting 1 here.</value>
+  <data name="InstallHandler.Text" xml:space="preserve">
+    <value>Install Tapatalk API Handler</value>
   </data>
-  <data name="lblSetting1.Text" xml:space="preserve">
-    <value>Setting One</value>
+  <data name="InstallTapatalkAPIHandler.Text" xml:space="preserve">
+    <value>Install Tapatalk API Handler</value>
   </data>
-  <data name="lblSetting2.Help" xml:space="preserve">
-    <value>Put your value for Setting 2 here.</value>
+  <data name="lblAFInstance.Help" xml:space="preserve">
+    <value>Select an instance of Active Forums which the Tapatalk should integrate with.</value>
   </data>
-  <data name="lblSetting2.Text" xml:space="preserve">
-    <value>Setting Two</value>
+  <data name="lblAFInstance.Text" xml:space="preserve">
+    <value>Active Forums Instance</value>
+  </data>
+  <data name="lblAllowAnonymous.Help" xml:space="preserve">
+    <value>Check to allow anonymous users to view the forum via a Tapatalk Client.</value>
+  </data>
+  <data name="lblAllowAnonymous.Text" xml:space="preserve">
+    <value>Allow Anonymous Access</value>
+  </data>
+  <data name="lblEnabled.Help" xml:space="preserve">
+    <value>Check to enable to Active Tapatalk API Service.   The Tapatalk API service handler must be installed and an Active Forum instance selected before the API can be enabled.</value>
+  </data>
+  <data name="lblEnabled.Text" xml:space="preserve">
+    <value>Enable Tapatalk API</value>
+  </data>
+  <data name="lblFileExtension.Help" xml:space="preserve">
+    <value>The value you should enter for "File Extension" on the "Advanced" tab.</value>
+  </data>
+  <data name="lblFileExtension.Text" xml:space="preserve">
+    <value>File Extension</value>
+  </data>
+  <data name="lblForumUrl.Help" xml:space="preserve">
+    <value>The Forum URL you should enter for "Forum URL" on the "Basic" tab.   Note that you can enter a different value, but it should not have a file extension and you may have to adust the relative registration URL accordingly.   For example, you may enter: http://www.yoursite.com/forums and adjust the registration URL to be ../Registration.aspx</value>
+  </data>
+  <data name="lblForumUrl.Text" xml:space="preserve">
+    <value>Forum URL</value>
+  </data>
+  <data name="lblInstallationDirectoryName.Help" xml:space="preserve">
+    <value>The value you should enter for "Installation Directory Name" on the "Advanced" tab.</value>
+  </data>
+  <data name="lblInstallationDirectoryName.Text" xml:space="preserve">
+    <value>Installation Directory Name</value>
+  </data>
+  <data name="lblRegistrationPage.Help" xml:space="preserve">
+    <value>The registration url for your site relative to the Forum URL entered in the Forum Owner Area on Tapatalk.com</value>
+  </data>
+  <data name="lblRegistrationPage.Text" xml:space="preserve">
+    <value>Relative Registration URL</value>
+  </data>
+  <data name="TapatalkConfigurationInformation.Text" xml:space="preserve">
+    <value>Tapatalk.com Settings</value>
+  </data>
+  <data name="TapatalkInfo.Text" xml:space="preserve">
+    <value>The following information should be entered in the Forum Owner Area on Tapatalk.com</value>
+  </data>
+  <data name="UninstallHandler.Text" xml:space="preserve">
+    <value>Uninstall Tapatalk API Handler</value>
+  </data>
+  <data name="UninstallTapatalkAPIHandler.Text" xml:space="preserve">
+    <value>Uninstall Tapatalk API Handler</value>
   </data>
 </root>

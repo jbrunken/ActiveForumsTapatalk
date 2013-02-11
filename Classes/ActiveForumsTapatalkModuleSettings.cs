@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using DotNetNuke.Entities.Modules;
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 {
@@ -8,16 +10,40 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
         private const string AllowAnonymousKey = "AllowAnonymous";
         private const string ForumModuleIdKey = "ForumModuleId";
         private const string ForumTabIdKey = "ForumTabId";
+        private const string RegistrationUrlKey = "RegistrationUrl";
 
-        private const bool IsOpenDefault = true;
+        private const bool IsOpenDefault = false;
         private const bool AllowAnonymousDefault = true;
-        private const int ForumModuleIdDefault = 724; //-1;
-        private const int ForumTabIdDefault = 186; //-1;
+        private const int ForumModuleIdDefault = -1;
+        private const int ForumTabIdDefault = -1;
+        private const string RegistrationUrlDefault = "register.aspx";
 
         public bool IsOpen { get; set; }
         public bool AllowAnonymous { get; set; }
         public int ForumModuleId { get; set; }
         public int ForumTabId { get; set; }
+        public string RegistrationUrl { get; set; }
+
+        public bool Save(ModuleController moduleController, int moduleId)
+        {
+            try
+            {
+                if (moduleController == null || moduleId < 0)
+                    return false;
+
+                moduleController.UpdateModuleSetting(moduleId, IsOpenKey, IsOpen.ToString());
+                moduleController.UpdateModuleSetting(moduleId, AllowAnonymousKey, AllowAnonymous.ToString());
+                moduleController.UpdateModuleSetting(moduleId, ForumModuleIdKey, ForumModuleId.ToString());
+                moduleController.UpdateModuleSetting(moduleId, ForumTabIdKey, ForumTabId.ToString());
+                moduleController.UpdateModuleSetting(moduleId, RegistrationUrlKey, RegistrationUrl);
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
 
         public static ActiveForumsTapatalkModuleSettings Create(Hashtable moduleSettings)
         {
@@ -26,7 +52,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
                                 IsOpen = ReadBool(moduleSettings, IsOpenKey, IsOpenDefault),
                                 AllowAnonymous = ReadBool(moduleSettings, AllowAnonymousKey, AllowAnonymousDefault), 
                                 ForumModuleId = ReadInt(moduleSettings, ForumModuleIdKey, ForumModuleIdDefault),
-                                ForumTabId = ReadInt(moduleSettings, ForumTabIdKey, ForumTabIdDefault)
+                                ForumTabId = ReadInt(moduleSettings, ForumTabIdKey, ForumTabIdDefault),
+                                RegistrationUrl = ReadString(moduleSettings, RegistrationUrlKey, RegistrationUrlDefault)
                              };
 
             return result;
@@ -60,6 +87,16 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             int parseResult;    
 
             return int.TryParse(value.ToString(), out parseResult) ? parseResult : defaultValue;
+        }
+
+        private static string ReadString(IDictionary settings, string key, string defaultValue)
+        {
+            if (settings == null || settings.Count == 0)
+                return defaultValue;
+
+            var value = settings[key] as string;
+
+            return value ?? defaultValue;
         }
 
     }

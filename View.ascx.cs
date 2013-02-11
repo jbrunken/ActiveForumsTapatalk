@@ -1,24 +1,9 @@
-﻿/*
-' Copyright (c) 2013  DotNetNuke Corporation
-'  All rights reserved.
-' 
-' THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-' TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-' THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-' CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-' DEALINGS IN THE SOFTWARE.
-' 
-*/
-
+﻿
 using System;
-using System.Web.UI.WebControls;
-using DotNetNuke.Modules.ActiveForumsTapatalk.Components;
-using DotNetNuke.Security;
-using DotNetNuke.Services.Exceptions;
+using DotNetNuke.Common;
 using DotNetNuke.Entities.Modules;
 using DotNetNuke.Entities.Modules.Actions;
-using DotNetNuke.Services.Localization;
-using DotNetNuke.UI.Utilities;
+using DotNetNuke.Modules.ActiveForumsTapatalk.Classes;
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk
 {
@@ -39,7 +24,10 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            tapatalkConfigWarning.Visible = false;
 
+            if (Globals.IsEditMode())
+                CheckConfig();
         }
 
 
@@ -56,6 +44,16 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
                         //}
                     };
                 return actions;
+            }
+        }
+
+        private void CheckConfig()
+        {
+            var settings = ActiveForumsTapatalkModuleSettings.Create(Settings);
+            if(settings.ForumModuleId < 0 || settings.ForumTabId < 0)
+            {
+                tapatalkConfigWarning.Visible = true;
+                tapatalkConfigWarning.InnerText = LocalizeString("ConfigWarning");
             }
         }
     }

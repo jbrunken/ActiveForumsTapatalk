@@ -99,7 +99,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
         public static ActiveForumsTapatalkModuleContext Create(HttpContext context)
         {
-            var match = Regex.Match(context.Request.Path, @"\/aft(\d+)\/mobiquo.php", RegexOptions.IgnoreCase);
+            var match = Regex.Match(context.Request.Path, @"\/aft(\d+)\/mobiquo", RegexOptions.IgnoreCase);
 
             int moduleId;
 
