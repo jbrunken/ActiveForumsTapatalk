@@ -310,7 +310,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var portalId = aftContext.Module.PortalID;
             var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
 
-            var fc = new ForumController();
+            var fc = new AFTForumController();
 
             var forumInfo = fc.GetForum(portalId, forumModuleId, forumId);
 
@@ -408,7 +408,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 if(isApproved)
                 {
                     // Send User Notifications
-                    Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, 0, ti.Content.AuthorId); 
+                    Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, 0, ti.Content.AuthorId);
+
+                    // Add Journal entry
+                    var forumTabId = aftContext.ModuleSettings.ForumTabId;
+                    var fullURL = fc.BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    new Social().AddTopicToJournal(portalId, forumModuleId, forumId, topicId, ti.Author.AuthorId, fullURL, ti.Content.Subject, string.Empty, ti.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
                 {
@@ -632,7 +637,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var portalId = aftContext.Module.PortalID;
             var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
 
-            var fc = new ForumController();
+            var fc = new AFTForumController();
 
             var forumInfo = fc.GetForum(portalId, forumModuleId, forumId);
 
@@ -716,7 +721,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 if (isApproved)
                 {
                     // Send User Notifications
-                    Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, 0, ri.Content.AuthorId);
+                    Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, ri.ReplyId, ri.Content.AuthorId);
+
+                    // Add Journal entry
+                    var forumTabId = aftContext.ModuleSettings.ForumTabId;
+                    var ti = new TopicsController().Topics_Get(portalId, forumModuleId, topicId, forumId, -1, false);
+                    var fullURL = fc.BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    new Social().AddReplyToJournal(portalId, forumModuleId, forumId, topicId, ri.ReplyId, ri.Author.AuthorId, fullURL, ri.Content.Subject, string.Empty, ri.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
                 {
@@ -1105,7 +1116,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 case "p":
                     ProcessNodes(output, node.ChildNodes, mode);
                     output.Append(lineBreak);
-                    output.Append(lineBreak);
+                    //output.Append(lineBreak);
                     return;
 
                 case "b":

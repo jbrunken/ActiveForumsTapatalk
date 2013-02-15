@@ -151,5 +151,102 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             return result;
         }
+
+        public string BuildUrl(int tabId, int moduleId, string groupPrefix, string forumPrefix, int forumGroupId, int forumID, int topicId, string topicURL, int tagId, int categoryId, string otherPrefix, int pageId, int socialGroupId)
+        {
+            var mainSettings = DataCache.MainSettings(moduleId);
+            string[] @params = { };
+            if (!mainSettings.URLRewriteEnabled || (((string.IsNullOrEmpty(forumPrefix) && forumID > 0 && string.IsNullOrEmpty(groupPrefix)) | (string.IsNullOrEmpty(forumPrefix) && string.IsNullOrEmpty(groupPrefix) && forumGroupId > 0)) && string.IsNullOrEmpty(otherPrefix)))
+            {
+                if (forumID > 0 && topicId == -1)
+                {
+                    @params = Utilities.AddParams(ParamKeys.ForumId + "=" + forumID.ToString(), @params);
+                }
+                else if (forumGroupId > 0 && topicId == -1)
+                {
+                    @params = Utilities.AddParams(ParamKeys.GroupId + "=" + forumGroupId.ToString(), @params);
+                }
+                else if (tagId > 0)
+                {
+                    //afv=grid&afgt=tags&aftg=
+                    @params = Utilities.AddParams("afv=grid", @params);
+                    @params = Utilities.AddParams("afgt=tags", @params);
+                    @params = Utilities.AddParams("aftg=" + tagId.ToString(), @params);
+
+
+                }
+                else if (categoryId > 0)
+                {
+                    @params = Utilities.AddParams("act=" + categoryId.ToString(), @params);
+                }
+                else if (!(string.IsNullOrEmpty(otherPrefix)))
+                {
+                    @params = Utilities.AddParams("afv=grid", @params);
+                    @params = Utilities.AddParams("afgt=" + otherPrefix, @params);
+                }
+                else if (topicId > 0)
+                {
+                    @params = Utilities.AddParams(ParamKeys.TopicId + "=" + topicId.ToString(), @params);
+                }
+                if (pageId > 1)
+                {
+                    @params = Utilities.AddParams(ParamKeys.PageId + "=" + pageId, @params);
+                }
+                if (socialGroupId > 0)
+                {
+                    @params = Utilities.AddParams("GroupId=" + socialGroupId, @params);
+                }
+                return Utilities.NavigateUrl(tabId, "", @params);
+            }
+            else
+            {
+                string sURL = string.Empty;
+                if (!(string.IsNullOrEmpty(mainSettings.PrefixURLBase)))
+                {
+                    sURL += "/" + mainSettings.PrefixURLBase;
+                }
+                if (!(string.IsNullOrEmpty(groupPrefix)))
+                {
+                    sURL += "/" + groupPrefix;
+                }
+                if (!(string.IsNullOrEmpty(forumPrefix)))
+                {
+                    sURL += "/" + forumPrefix;
+                }
+                if (!(string.IsNullOrEmpty(topicURL)))
+                {
+                    sURL += "/" + topicURL;
+                }
+                if (tagId > 0)
+                {
+                    sURL += "/" + mainSettings.PrefixURLTag + "/" + otherPrefix;
+                }
+                else if (categoryId > 0)
+                {
+                    sURL += "/" + mainSettings.PrefixURLCategory + "/" + otherPrefix;
+                }
+                else if (!(string.IsNullOrEmpty(otherPrefix)) && (tagId == -1 || categoryId == -1))
+                {
+                    sURL += "/" + mainSettings.PrefixURLOther + "/" + otherPrefix;
+                }
+                if (topicId > 0 && string.IsNullOrEmpty(topicURL))
+                {
+                    return Utilities.NavigateUrl(tabId, "", ParamKeys.TopicId + "=" + topicId.ToString());
+                }
+                if (pageId > 1)
+                {
+                    if (string.IsNullOrEmpty(sURL))
+                    {
+                        return Utilities.NavigateUrl(tabId, "", ParamKeys.PageId + "=" + pageId);
+                    }
+                    sURL += "/" + pageId.ToString();
+                }
+                if (string.IsNullOrEmpty(sURL))
+                {
+                    return Utilities.NavigateUrl(tabId);
+                }
+                return sURL + "/";
+            }
+        }
     }
 }
