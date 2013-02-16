@@ -12,7 +12,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
         public string ForumId;
 
         [XmlRpcMember("forum_name")]
-        public string ForumName;
+        public byte[] ForumName;
 
         [XmlRpcMember("can_post")]
         public bool CanPost;

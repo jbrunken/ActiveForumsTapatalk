@@ -30,7 +30,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Extensions
 
         public static byte[] ToBytes(this string value)
         {
-            return Encoding.Default.GetBytes(value);
+            return Encoding.UTF8.GetBytes(value);
         }
 
     }

@@ -1,6 +1,6 @@
 <dotnetnuke type="Package" version="5.0">
   <packages>
-    <package name="ActiveForumsTapatalk" type="Module" version="00.00.02">
+    <package name="ActiveForumsTapatalk" type="Module" version="00.00.03">
       <friendlyName>Active Forums Tapatalk</friendlyName>
       <description>Adds Tapatalk support to Active Forums 5+ for DNN 7.0+</description>
       <iconFile>~/DesktopModules/ActiveForumsTapatalk/Images/activeforumstapatalk_32x32.png</iconFile>

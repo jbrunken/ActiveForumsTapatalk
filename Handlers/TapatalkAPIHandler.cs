@@ -40,6 +40,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var rpcstruct = new XmlRpcStruct
                                 {
+                                    {"sys_version", "0.0.2"},
                                     {"version", "dev"}, 
                                     {"is_open", aftContext.ModuleSettings.IsOpen}, 
                                     {"api_level", "3"},
@@ -212,7 +213,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {
                     CanPost = false,
                     ForumId = parameters[0].ToString(),
-                    ForumName = "test",
+                    ForumName = string.Empty.ToBytes(),
                     TopicCount = 0
                 };
             }
@@ -261,7 +262,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                            {
                                                CanPost = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanCreate),
                                                ForumId = forumId.ToString(),
-                                               ForumName = forumTopicsSummary.ForumName,
+                                               ForumName = forumTopicsSummary.ForumName.ToBytes(),
                                                TopicCount = forumTopicsSummary.TopicCount,
                                                Topics = forumTopics.Select(t => new TopicStructure{ 
                                                    TopicId = t.TopicId.ToString(),
@@ -545,7 +546,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                           PostID = p.ContentId.ToString(),
                                           AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
                                           AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
-                                          Body = HtmlToTapatalk(p.Body).ToBytes(),
+                                          Body =  HtmlToTapatalk(p.Body).ToBytes(),
                                           CanEdit = false, // TODO: Fix this
                                           IsOnline = p.IsUserOnline,
                                           PostDate = p.DateCreated,
@@ -1057,7 +1058,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Quote);
 
-            return string.Format("[quote={0}]\n{1}\n[/quote]\n", postedBy, tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' }));
+            return string.Format("[quote={0}]\r\n{1}\r\n[/quote]\r\n", postedBy, tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' }));
         }
 
         private static void ProcessNodes(StringBuilder output, IEnumerable<HtmlNode> nodes, ProcessModes mode)
@@ -1068,7 +1069,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
         private static void ProcessNode(StringBuilder output, HtmlNode node, ProcessModes mode)
         {
-            var lineBreak = (mode == ProcessModes.Quote) ? "\n" : "<br /> ";
+            var lineBreak = "\r\n"; // (mode == ProcessModes.Quote) ? "\n" : "<br /> ";
 
             if (node == null || output == null || (mode == ProcessModes.TextOnly && node.Name != "#text"))
                 return;
@@ -1175,6 +1176,15 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     var isEmoticon = src.Value.IndexOf("emoticon", 0, StringComparison.InvariantCultureIgnoreCase) >= 0;
+
+                    var url = src.Value;
+                    var request = HttpContext.Current.Request;
+
+                    // Make a fully qualifed URL
+                    if(!url.StartsWith("/"))
+                    {
+                        url = string.Format("{0}://{1}{2}", request.Url.Scheme, request.Url.Host, url);
+                    }
 
                     if(mode == ProcessModes.Quote && isEmoticon)
                         return;
