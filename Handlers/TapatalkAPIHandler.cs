@@ -41,16 +41,52 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                     {"sys_version", "0.0.2"},
                                     {"version", "dev"}, 
                                     {"is_open", aftContext.ModuleSettings.IsOpen}, 
-                                    {"api_level", "3"},
+                                    {"api_level", "4"},
                                     {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
                                     {"disable_bbcode", "0"},
                                     {"reg_url", "register.aspx"},
                                     {"charset", "UTF-8"},
                                     {"subscribe_forum", "1"},
+                                    {"disable_subscribe_forum", "0"},
                                     {"can_unread", "0"},
                                     {"announcement", "1"},
                                     {"conversation", "0"},
-                                    {"inbox_stat", "0"}
+                                    {"inbox_stat", "0"},
+                                    {"push", "0"},
+                                    {"hide_forum_id", ""},
+                                    {"allow_moderate", "0"},
+                                    {"report_post", "0"},
+                                    {"report_pm", "0"},
+                                    {"goto_unread", "0"},
+                                    {"goto_post", "0"},
+                                    {"mark_read", "0"},
+                                    {"mark_forum", "0"},
+                                    {"refresh_on_post", "1"},
+                                    {"get_latest_topic", "0"},
+                                    {"get_id_by_url", "0"},
+                                    {"delete_reason", "0"},
+                                    {"mod_approve", "0"},
+                                    {"mod_delete", "0"},
+                                    {"mod_report", "0"},
+                                    {"pm_load", "0"},
+                                    {"subscribe_load", "0"},
+                                    {"avatar", "0"},
+                                    {"mass_subscribe", "0"},
+                                    {"emoji", "0"},
+                                    {"searchid", "0"},
+                                    {"multi_quote", "0"},
+                                    {"user_id", "0"},
+                                    {"get_forum", "1"},
+                                    {"get_forum_status", "0"},
+                                    {"get_participated_forum", "0"},
+                                    {"get_smiles", "0"},
+                                    {"get_online_users", "0"},
+                                    {"mark_topic_read", "0"},
+                                    {"mark_pm_unread", "0"},
+                                    {"advanced_search", "0"},
+                                    {"get_alert", "0"},
+                                    {"min_search_length", "4"},
+                                    {"advanced_delete", "0"}
                                 };        
 
             return rpcstruct;
@@ -275,7 +311,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    ReplyCount = t.ReplyCount,
                                                    Summary = GetSummary(t.Summary, t.Body).ToBytes(),
                                                    ViewCount = t.ViewCount,
-                                                   Title = t.Subject.ToBytes()
+                                                   Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                                }).ToArray()
                                            };
                                              
@@ -452,7 +488,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var result = new XmlRpcStruct
             {
                 {"result", true}, //"true" for success
-                {"result_text", "OK".ToBytes()}, 
+               // {"result_text", "OK".ToBytes()}, 
                 {"topic_id", ti.TopicId.ToString()},
             };
 
@@ -775,13 +811,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var result = new XmlRpcStruct
             {
                 {"result", true}, //"true" for success
-                {"result_text", "OK".ToBytes()}, 
+                //{"result_text", "OK".ToBytes()}, 
                 {"post_id", ri.ContentId.ToString()},
-                {"post_content", HtmlToTapatalk(ri.Content.Body, returnHtml).ToBytes() },
+                {"post_content", HtmlToTapatalk(ri.Content.Body, false).ToBytes() },
                 {"can_edit", canEdit || canModEdit },
                 {"can_delete", canDelete || canModDelete },
-                {"post_time", dt},
-                {"attachments", new {}}
+                {"post_time", dt}/*,
+                {"attachments", new {}}*/
             };
 
             if(!isApproved)
