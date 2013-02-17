@@ -6,9 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Security;
-using System.Web.UI;
 using CookComputing.XmlRpc;
-using DotNetNuke.Entities.Portals;
 using DotNetNuke.Entities.Users;
 using DotNetNuke.Modules.ActiveForums;
 using DotNetNuke.Modules.ActiveForumsTapatalk.Classes;
@@ -289,20 +287,23 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         [XmlRpcMethod("new_topic")]
         public XmlRpcStruct NewTopic(params object[] parameters)
         {
-            if(parameters.Length >= 3)
-            {
-                var forumId = Convert.ToInt32(parameters[0]);
-                var subject = Encoding.Default.GetString((byte[])parameters[1]);
-                var body = Encoding.Default.GetString((byte[])parameters[2]);
+            if (parameters.Length < 3)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
-                return NewTopic(forumId, subject, body);
-            }
+            var forumId = Convert.ToInt32(parameters[0]);
+            var subject = Encoding.Default.GetString((byte[]) parameters[1]);
+            var body = Encoding.Default.GetString((byte[]) parameters[2]);
+
+            var prefixId = parameters.Length >= 4 ? Convert.ToString(parameters[3]) : null;
+            var attachmentIds = parameters.Length >= 5 ? (string[])parameters[4] : null;
+            var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
             
 
-            throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+            return NewTopic(forumId, subject, body, prefixId, attachmentIds, groupId);
+
         }
 
-        private XmlRpcStruct NewTopic(int forumId, string subject, string body)
+        private XmlRpcStruct NewTopic(int forumId, string subject, string body, string prefixId, string[] attachmentIds, string groupId)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
             
@@ -448,13 +449,17 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
 
 
-            return new XmlRpcStruct
+            var result = new XmlRpcStruct
             {
-                {"result", "true"}, //"true" for success
-                {"result_text", string.Empty.ToBytes()}, 
+                {"result", true}, //"true" for success
+                {"result_text", "OK".ToBytes()}, 
                 {"topic_id", ti.TopicId.ToString()},
-                {"state", isApproved ? 0 : 1 },
             };
+
+            if(!isApproved)
+                result.Add("state", 1);
+
+            return result;
 
         }
 
@@ -465,13 +470,16 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         [XmlRpcMethod("get_thread")]
         public PostListStructure GetThread(params object[] parameters)
         {
-            if (parameters.Length >= 3)
-                return GetThread(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]));
+            if (parameters.Length == 3)
+                return GetThread(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]), false);
+
+            if (parameters.Length == 4)
+                return GetThread(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]), Convert.ToBoolean(parameters[3]));
 
             throw new XmlRpcFaultException(100, "Invalid Method Signature");
         }
 
-        private PostListStructure GetThread(int topicId, int startIndex, int endIndex)
+        private PostListStructure GetThread(int topicId, int startIndex, int endIndex, bool returnHtml)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -546,7 +554,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                           PostID = p.ContentId.ToString(),
                                           AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
                                           AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
-                                          Body =  HtmlToTapatalk(p.Body).ToBytes(),
+                                          Body =  HtmlToTapatalk(p.Body, returnHtml).ToBytes(),
                                           CanEdit = false, // TODO: Fix this
                                           IsOnline = p.IsUserOnline,
                                           PostDate = p.DateCreated,
@@ -616,20 +624,22 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         [XmlRpcMethod("reply_post")]
         public XmlRpcStruct Reply(params object[] parameters)
         {
-            if (parameters.Length >= 4)
-            {
-                var forumId = Convert.ToInt32(parameters[0]);
-                var topicId = Convert.ToInt32(parameters[1]);
-                var subject = Encoding.Default.GetString((byte[])parameters[2]);
-                var body = Encoding.Default.GetString((byte[])parameters[3]);
+            if (parameters.Length < 4)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
-                return Reply(forumId, topicId, subject, body);
-            }
+            var forumId = Convert.ToInt32(parameters[0]);
+            var topicId = Convert.ToInt32(parameters[1]);
+            var subject = Encoding.Default.GetString((byte[]) parameters[2]);
+            var body = Encoding.Default.GetString((byte[]) parameters[3]);
 
-            throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+            var attachmentIds = parameters.Length >= 5 ? (string[]) parameters[4] : null;
+            var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
+            var returnHtml = parameters.Length >= 7 ? Convert.ToBoolean(parameters[6]) : false;
+
+            return Reply(forumId, topicId, subject, body, attachmentIds, groupId, returnHtml);
         }
 
-        private XmlRpcStruct Reply(int forumId, int topicId, string subject, string body)
+        private XmlRpcStruct Reply(int forumId, int topicId, string subject, string body, string[] attachmentIds, string groupID, bool returnHtml)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -762,18 +772,22 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
 
 
-            return new XmlRpcStruct
+            var result = new XmlRpcStruct
             {
-                {"result", "true"}, //"true" for success
-                {"result_text", string.Empty.ToBytes()}, 
+                {"result", true}, //"true" for success
+                {"result_text", "OK".ToBytes()}, 
                 {"post_id", ri.ContentId.ToString()},
-                {"state", isApproved ? 0 : 1 },
-                {"post_content", HtmlToTapatalk(ri.Content.Body).ToBytes() },
+                {"post_content", HtmlToTapatalk(ri.Content.Body, returnHtml).ToBytes() },
                 {"can_edit", canEdit || canModEdit },
                 {"can_delete", canDelete || canModDelete },
                 {"post_time", dt},
                 {"attachments", new {}}
             };
+
+            if(!isApproved)
+                result.Add("state", 1);
+
+            return result;
 
 
         }
@@ -1027,7 +1041,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return input;
         }
 
-        private static string HtmlToTapatalk(string input)
+        private static string HtmlToTapatalk(string input, bool returnHtml)
         {
             if (string.IsNullOrWhiteSpace(input))
                 return input;
@@ -1039,7 +1053,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var tapatalkMarkup = new StringBuilder();
 
-            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Normal);
+            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Normal, returnHtml);
 
             return tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' });
         }
@@ -1056,20 +1070,20 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var tapatalkMarkup = new StringBuilder();
 
-            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Quote);
+            ProcessNode(tapatalkMarkup, htmlBlock.DocumentNode, ProcessModes.Quote, false);
 
             return string.Format("[quote={0}]\r\n{1}\r\n[/quote]\r\n", postedBy, tapatalkMarkup.ToString().Trim(new[] { ' ', '\n', '\r', '\t' }));
         }
 
-        private static void ProcessNodes(StringBuilder output, IEnumerable<HtmlNode> nodes, ProcessModes mode)
+        private static void ProcessNodes(StringBuilder output, IEnumerable<HtmlNode> nodes, ProcessModes mode, bool returnHtml)
         {
             foreach (var node in nodes)
-                ProcessNode(output, node, mode);
+                ProcessNode(output, node, mode, returnHtml);
         }
 
-        private static void ProcessNode(StringBuilder output, HtmlNode node, ProcessModes mode)
+        private static void ProcessNode(StringBuilder output, HtmlNode node, ProcessModes mode, bool returnHtml)
         {
-            var lineBreak = "\r\n"; // (mode == ProcessModes.Quote) ? "\n" : "<br /> ";
+            var lineBreak = returnHtml ? "<br />" : "\r\n"; // (mode == ProcessModes.Quote) ? "\n" : "<br /> ";
 
             if (node == null || output == null || (mode == ProcessModes.TextOnly && node.Name != "#text"))
                 return;
@@ -1080,7 +1094,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 case "#text":
                     var text = HttpUtility.HtmlDecode(node.InnerHtml);
                     if (mode != ProcessModes.Quote)
-                        text = text.Replace("<", "&lt;").Replace(">", "&gt;");
+                        text = HttpContext.Current.Server.HtmlEncode(text);
                     output.Append(text);
                     return;
 
@@ -1100,7 +1114,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.Append(lineBreak);
-                    ProcessNodes(output, node.ChildNodes, mode);
+                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append(lineBreak);
                     return;
 
@@ -1110,12 +1124,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return; 
 
                     output.Append("* ");
-                    ProcessNodes(output, node.ChildNodes, mode);
+                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append(lineBreak);
                     return;
 
                 case "p":
-                    ProcessNodes(output, node.ChildNodes, mode);
+                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append(lineBreak);
                     //output.Append(lineBreak);
                     return;
@@ -1126,13 +1140,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     if(mode != ProcessModes.Quote)
                     {
                         output.Append("<b>");
-                        ProcessNodes(output, node.ChildNodes, mode);
+                        ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                         output.Append("</b>");
                     }
                     else
                     {
                         output.Append("[b]");
-                        ProcessNodes(output, node.ChildNodes, mode);
+                        ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                         output.Append("[/b]");
                     }
 
@@ -1142,13 +1156,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     if(mode != ProcessModes.Quote)
                     {
                         output.Append("<i>");
-                        ProcessNodes(output, node.ChildNodes, mode);
+                        ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                         output.Append("</i>");
                     }
                     else
                     {
                         output.Append("[i]");
-                        ProcessNodes(output, node.ChildNodes, mode);
+                        ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                         output.Append("[/i]");
                     }
 
@@ -1160,7 +1174,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.Append("[quote]");
-                    ProcessNodes(output, node.ChildNodes, mode);
+                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append("[/quote]" + lineBreak);
                     return;
 
@@ -1200,14 +1214,14 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.AppendFormat("[url={0}]", href.Value);
-                    ProcessNodes(output, node.ChildNodes, ProcessModes.TextOnly); 
+                    ProcessNodes(output, node.ChildNodes, ProcessModes.TextOnly, returnHtml); 
                     output.Append("[/url]");
 
                     return;
 
             }
 
-            ProcessNodes(output, node.ChildNodes, mode);
+            ProcessNodes(output, node.ChildNodes, mode, returnHtml);
         }
 
         private static string GetAuthorName(SettingsInfo settings, UserInfo user)

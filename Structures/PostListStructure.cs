@@ -10,7 +10,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
         [XmlRpcMember("forum_id")] 
         public int ForumId;
 
-        [XmlRpcMember("forum_name")] 
+        [XmlRpcMember("forum_topic")] 
         public byte[] ForumName;
 
         [XmlRpcMember("topic_id")] 
