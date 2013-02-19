@@ -1,6 +1,6 @@
 <dotnetnuke type="Package" version="5.0">
   <packages>
-    <package name="ActiveForumsTapatalk" type="Module" version="00.00.04">
+    <package name="ActiveForumsTapatalk" type="Module" version="00.00.05">
       <friendlyName>Active Forums Tapatalk</friendlyName>
       <description>Adds Tapatalk support to Active Forums 5+ for DNN 7.0+</description>
       <iconFile>~/DesktopModules/ActiveForumsTapatalk/Images/activeforumstapatalk_32x32.png</iconFile>
@@ -25,10 +25,15 @@
               <name>00.00.01.SqlDataProvider</name>
               <version>00.00.01</version>
             </script>
+            <script type="Install">
+              <path>Providers\DataProviders\SqlDataProvider</path>
+              <name>00.00.05.SqlDataProvider</name>
+              <version>00.00.05</version>
+            </script>
             <script type="UnInstall">
               <path>Providers\DataProviders\SqlDataProvider</path>
               <name>Uninstall.SqlDataProvider</name>
-              <version>00.00.01</version>
+              <version>00.00.05</version>
             </script>
           </scripts>
         </component>
@@ -85,7 +90,7 @@
               <name>DotNetNuke.Modules.ActiveForumsTapatalk.dll</name>
             </assembly>
             <assembly>
-              <name>CookComputing.XmlRpcV2.dll</name>
+              <name>DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</name>
             </assembly>
             <assembly>
               <name>HtmlAgilityPack.dll</name>

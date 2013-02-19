@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Security;
-using CookComputing.XmlRpc;
+using ActiveForumsTapatalk.XmlRpc;
 using DotNetNuke.Entities.Users;
 using DotNetNuke.Modules.ActiveForums;
 using DotNetNuke.Modules.ActiveForumsTapatalk.Classes;
@@ -33,61 +33,61 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             if (aftContext == null || aftContext.Module == null)
                 throw new XmlRpcFaultException(100, "Invalid Context"); 
 
-            //if(aftContext.UserId < 0)
-                Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false"); 
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false"); 
 
             var rpcstruct = new XmlRpcStruct
-                                {
-                                    {"sys_version", "0.0.2"},
-                                    {"version", "dev"}, 
-                                    {"is_open", aftContext.ModuleSettings.IsOpen}, 
-                                    {"api_level", "4"},
-                                    {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
-                                    {"disable_bbcode", "0"},
-                                    {"reg_url", "register.aspx"},
-                                    {"charset", "UTF-8"},
-                                    {"subscribe_forum", "1"},
-                                    {"disable_subscribe_forum", "0"},
-                                    {"can_unread", "0"},
-                                    {"announcement", "1"},
-                                    {"conversation", "0"},
-                                    {"inbox_stat", "0"},
-                                    {"push", "0"},
-                                    {"hide_forum_id", ""},
-                                    {"allow_moderate", "0"},
-                                    {"report_post", "0"},
-                                    {"report_pm", "0"},
-                                    {"goto_unread", "0"},
-                                    {"goto_post", "0"},
-                                    {"mark_read", "0"},
-                                    {"mark_forum", "0"},
-                                    {"refresh_on_post", "1"},
-                                    {"get_latest_topic", "0"},
-                                    {"get_id_by_url", "0"},
-                                    {"delete_reason", "0"},
-                                    {"mod_approve", "0"},
-                                    {"mod_delete", "0"},
-                                    {"mod_report", "0"},
-                                    {"pm_load", "0"},
-                                    {"subscribe_load", "0"},
-                                    {"avatar", "0"},
-                                    {"mass_subscribe", "0"},
-                                    {"emoji", "0"},
-                                    {"searchid", "0"},
-                                    {"multi_quote", "0"},
-                                    {"user_id", "0"},
-                                    {"get_forum", "1"},
-                                    {"get_forum_status", "0"},
-                                    {"get_participated_forum", "0"},
-                                    {"get_smiles", "0"},
-                                    {"get_online_users", "0"},
-                                    {"mark_topic_read", "0"},
-                                    {"mark_pm_unread", "0"},
-                                    {"advanced_search", "0"},
-                                    {"get_alert", "0"},
-                                    {"min_search_length", "4"},
-                                    {"advanced_delete", "0"}
-                                };        
+            {
+                {"sys_version", "0.0.2"}, 
+                {"version", "dev"}, 
+                {"is_open", aftContext.ModuleSettings.IsOpen}, 
+                {"api_level", "3"},
+                {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
+                {"disable_bbcode", "0"},
+                {"min_search_length", "4"},
+                {"reg_url", "register.aspx"},
+                {"charset", "UTF-8"},
+                {"subscribe_forum", "1"},
+                {"multi_quote", "1"},
+                {"goto_unread", "1"},
+                {"goto_post", "1"},
+                {"announcement", "1"},
+                {"no_refresh_on_post", "1"},
+                {"avatar", "0"},
+                {"disable_subscribe_forum", "0"},
+                {"can_unread", "0"},
+                {"conversation", "0"},
+                {"inbox_stat", "0"},
+                {"push", "0"},
+                {"hide_forum_id", ""},
+                {"allow_moderate", "0"},
+                {"report_post", "0"},
+                {"report_pm", "0"},
+                {"mark_read", "0"},
+                {"mark_forum", "0"},
+                {"get_latest_topic", "0"},
+                {"get_id_by_url", "0"},
+                {"delete_reason", "0"},
+                {"mod_approve", "0"},
+                {"mod_delete", "0"},
+                {"mod_report", "0"},
+                {"pm_load", "0"},
+                {"subscribe_load", "0"},
+                {"mass_subscribe", "0"},
+                {"emoji", "0"},
+                {"searchid", "0"},
+                {"user_id", "0"},
+                {"get_forum", "0"},
+                {"get_forum_status", "0"},
+                {"get_participated_forum", "0"},
+                {"get_smiles", "0"},
+                {"get_online_users", "0"},
+                {"mark_topic_read", "0"},
+                {"mark_pm_unread", "0"},
+                {"advanced_search", "0"},
+                {"get_alert", "0"},
+                {"advanced_delete", "0"},
+                {"default_smiles", "0"}
+            };        
 
             return rpcstruct;
 
@@ -603,17 +603,89 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return result;
         }
 
+        [XmlRpcMethod("get_thread_by_unread")]
+        public PostListStructure GetThreadByUnread(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
+
+            var topicId = Convert.ToInt32(parameters[0]);
+            var postsPerRequest = parameters.Length >= 2 ? Convert.ToInt32(parameters[1]) : 20;
+            var returnHtml = parameters.Length >= 3 && Convert.ToBoolean(parameters[2]);
+
+            return GetThreadByUnread(topicId, postsPerRequest, returnHtml);
+        }
+
+        private PostListStructure GetThreadByUnread(int topicId, int postsPerRequest, bool returnHtml)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            var postIndex = new AFTForumController().GetForumPostIndexUnread(topicId, aftContext.UserId);
+
+            var pageIndex = (postIndex - 1)/postsPerRequest;
+            var startIndex = pageIndex * postsPerRequest;
+            var endIndex = startIndex + postsPerRequest - 1;
+
+            var result = GetThread(topicId, startIndex, endIndex, returnHtml);
+
+            result.Position = postIndex;
+
+            return result;
+        }
+
+        [XmlRpcMethod("get_thread_by_post")]
+        public PostListStructure GetThreadByPost(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
+
+            var postId = Convert.ToInt32(parameters[0]);
+            var postsPerRequest = parameters.Length >= 2 ? Convert.ToInt32(parameters[1]) : 20;
+            var returnHtml = parameters.Length >= 3 && Convert.ToBoolean(parameters[2]);
+
+            return GetThreadByPost(postId, postsPerRequest, returnHtml);
+        }
+
+        private PostListStructure GetThreadByPost(int postId, int postsPerRequest, bool returnHtml)
+        {
+            // PostId = ContentId for our purposes
+
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            var postIndexResult = new AFTForumController().GetForumPostIndex(postId);
+                
+            if(postIndexResult == null)
+                throw new XmlRpcFaultException(100, "Post Not Found");
+
+            var pageIndex = (postIndexResult.RowIndex - 1) / postsPerRequest;
+            var startIndex = pageIndex * postsPerRequest;
+            var endIndex = startIndex + postsPerRequest - 1;
+
+            var result = GetThread(postIndexResult.TopicId, startIndex, endIndex, returnHtml);
+
+            result.Position = postIndexResult.RowIndex;
+
+            return result;
+        }
 
         [XmlRpcMethod("get_quote_post")]
         public XmlRpcStruct GetQuote(params object[] parameters)
         {
-            if (parameters.Length >= 1)
-                return GetQuote(Convert.ToInt32(parameters[0]));
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
-            throw new XmlRpcFaultException(100, "Invalid Method Signature");
+            var postIds = Convert.ToString(parameters[0]);
+
+            return GetQuote(postIds);
         }
 
-        private XmlRpcStruct GetQuote(int contentId)
+        private XmlRpcStruct GetQuote(string postIds)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -627,33 +699,51 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var fc = new AFTForumController();
 
-            // Retrieve the forum post
-            var forumPost = fc.GetForumPost(portalId, forumModuleId, contentId);
-
-            if(forumPost == null)
-                throw new XmlRpcFaultException(100, "Bad Request");
-
-            // Verify read permissions
-            var fp = fc.GetForumPermissions(forumPost.ForumId);
-
-            if (!ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanRead))
-                throw new XmlRpcFaultException(100, "No Read Permissions");
-
             // Load our forum settings
             var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
 
-            // Build our sanitized quote
+            // Get our quote template info
             var postedByTemplate = Utilities.GetSharedResource("[RESX:PostedBy]") + " {0} {1} {2}";
+            var sharedOnText = Utilities.GetSharedResource("On.Text");
 
-            var postedBy = string.Format(postedByTemplate, GetAuthorName(mainSettings, forumPost), Utilities.GetSharedResource("On.Text"), GetServerDateTime(mainSettings, forumPost.DateCreated));
-            var result = HtmlToTapatalkQuote(postedBy, forumPost.Body);
+            var contentIds = postIds.Split('-').Select(int.Parse).ToList();
 
-            // Return the result
+            if(contentIds.Count > 25) // Let's be reasonable
+                throw new XmlRpcFaultException(100, "Bad Request");
+
+
+            var postContent = new StringBuilder();
+
+            foreach (var contentId in contentIds)
+            {
+                // Retrieve the forum post
+                var forumPost = fc.GetForumPost(portalId, forumModuleId, contentId);
+
+                if (forumPost == null)
+                    throw new XmlRpcFaultException(100, "Bad Request");
+
+                // Verify read permissions - Need to do this for every content id as we can not assume they are all from the same forum (even though they probably should be)
+                var fp = fc.GetForumPermissions(forumPost.ForumId);
+
+                if (!ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanRead))
+                    continue;
+
+
+                // Build our sanitized quote
+                var postedBy = string.Format(postedByTemplate, GetAuthorName(mainSettings, forumPost), sharedOnText,
+                                             GetServerDateTime(mainSettings, forumPost.DateCreated));
+
+                postContent.Append(HtmlToTapatalkQuote(postedBy, forumPost.Body));
+                postContent.Append("\r\n");
+                // add the result
+
+            }
+
             return new XmlRpcStruct
             {
-                {"post_id", contentId.ToString()},
-                {"post_title", ("RE: " + forumPost.Subject).ToBytes()}, 
-                {"post_content", result.ToBytes()}
+                {"post_id", postIds},
+                {"post_title", string.Empty.ToBytes()},
+                {"post_content", postContent.ToString().ToBytes()}
             };
         }
 
@@ -1047,7 +1137,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             result = result + string.Empty;
 
-            result = Utilities.StripHTMLTag(result);
+            result = HttpUtility.HtmlDecode(Utilities.StripHTMLTag(result));
 
             result = result.Length > 200 ? result.Substring(0, 200) : result;
 
@@ -1134,9 +1224,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     output.Append(text);
                     return;
 
-                case "table":
-                    output.Append(lineBreak);
-                    output.Append(" { Table Removed } ");
+                case "tr":
+                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append(lineBreak);
                     return;
 
@@ -1150,8 +1239,17 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.Append(lineBreak);
-                    ProcessNodes(output, node.ChildNodes, mode, returnHtml);
-                    output.Append(lineBreak);
+
+                    var listItemNodes = node.SelectNodes("//li");
+
+                    for(var i = 0;  i < listItemNodes.Count; i++)
+                    {
+                        var listItemNode = listItemNodes[i];
+                        output.AppendFormat("{0} ", node.Name == "ol" ? (i + 1).ToString() : "*");
+                        ProcessNodes(output, listItemNode.ChildNodes, mode, returnHtml);
+                        output.Append(lineBreak);
+                    }
+                    
                     return;
 
                 case "li":
@@ -1167,7 +1265,6 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 case "p":
                     ProcessNodes(output, node.ChildNodes, mode, returnHtml);
                     output.Append(lineBreak);
-                    //output.Append(lineBreak);
                     return;
 
                 case "b":

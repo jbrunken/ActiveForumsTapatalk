@@ -49,9 +49,6 @@
       <HintPath>..\..\..\References\DNN 6.2.0\ClientDependency.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="CookComputing.XmlRpcV2">
-      <HintPath>..\..\..\xml-rpc.net\src\obj\Release\CookComputing.XmlRpcV2.dll</HintPath>
-    </Reference>
     <Reference Include="DotNetNuke, Version=7.0.2.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\References\DNN 7.0.0\DotNetNuke.dll</HintPath>
@@ -61,6 +58,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\References\AF 5.0.2\DotNetNuke.Modules.ActiveForums.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc">
+      <HintPath>..\..\..\xml-rpc.net\bin\DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</HintPath>
     </Reference>
     <Reference Include="DotNetNuke.Web, Version=7.0.2.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -98,6 +98,7 @@
     <Compile Include="Classes\ActiveForumsTapatalkModuleSettings.cs" />
     <Compile Include="Classes\ActiveForumsTapatalkModuleContext.cs" />
     <Compile Include="Classes\AFTForumController.cs" />
+    <Compile Include="Classes\PostIndex.cs" />
     <Compile Include="Structures\BreadcrumbStructure.cs" />
     <Compile Include="Structures\PostListStructure.cs" />
     <Compile Include="Structures\ForumStructure.cs" />
@@ -138,11 +139,12 @@
   <ItemGroup>
     <Content Include="Images\activeforumstapatalk_16x16.png" />
     <Content Include="Images\activeforumstapatalk_32x32.png" />
-    <None Include="Providers\DataProviders\SqlDataProvider\00.00.01.SqlDataProvider" />
     <Content Include="License.txt" />
     <Content Include="module.css" />
     <Content Include="ReleaseNotes.txt" />
     <Content Include="Settings.ascx" />
+    <Content Include="Providers\DataProviders\SqlDataProvider\00.00.05.SqlDataProvider" />
+    <Content Include="Providers\DataProviders\SqlDataProvider\00.00.01.SqlDataProvider" />
     <None Include="Providers\DataProviders\SqlDataProvider\Uninstall.SqlDataProvider" />
     <Content Include="View.ascx" />
   </ItemGroup>

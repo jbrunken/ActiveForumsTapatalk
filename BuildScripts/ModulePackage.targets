@@ -67,7 +67,7 @@
     </CreateItem>
 
     <Copy SourceFiles="$(MSBuildDnnBinPath)\$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
-    <Copy SourceFiles="$(MSBuildDnnBinPath)\CookComputing.XmlRpcV2.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
+    <Copy SourceFiles="$(MSBuildDnnBinPath)\DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
     <Copy SourceFiles="$(MSBuildDnnBinPath)\HtmlAgilityPack.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
     <Copy SourceFiles="@(SqlDataProviderFiles)" DestinationFolder="$(MSBuildProjectDirectory)\Package\%(RecursiveDir)" />
     <Copy SourceFiles="@(PackageManifestFiles)" DestinationFolder="$(MSBuildProjectDirectory)\Package" />
@@ -97,7 +97,7 @@
 
     
     <Copy SourceFiles="$(MSBuildDnnBinPath)\$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
-    <Copy SourceFiles="$(MSBuildDnnBinPath)\CookComputing.XmlRpcV2.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
+    <Copy SourceFiles="$(MSBuildDnnBinPath)\DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
     <Copy SourceFiles="$(MSBuildDnnBinPath)\HtmlAgilityPack.dll" DestinationFolder="$(MSBuildProjectDirectory)\Package\bin"/>
     <Copy SourceFiles="@(SqlDataProviderFiles)" DestinationFolder="$(MSBuildProjectDirectory)\Package\%(RecursiveDir)" />
     <Copy SourceFiles="@(PackageManifestFiles)" DestinationFolder="$(MSBuildProjectDirectory)\Package" />

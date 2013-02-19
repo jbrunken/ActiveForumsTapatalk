@@ -1,5 +1,5 @@
 ﻿using System;
-using CookComputing.XmlRpc;
+using ActiveForumsTapatalk.XmlRpc;
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {

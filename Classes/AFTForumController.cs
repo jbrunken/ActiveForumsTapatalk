@@ -248,5 +248,33 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
                 return sURL + "/";
             }
         }
+
+        public PostIndex GetForumPostIndex(int contentId)
+        {
+            PostIndex result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteSingleOrDefault<PostIndex>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPostIndex", contentId);
+            }
+
+            return result;  
+        }
+
+        public int GetForumPostIndexUnread(int topicId, int userId)
+        {
+            int? result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteScalar<int?>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPostIndexUnread", topicId, userId);
+            }
+
+            return result.HasValue ? result.Value : 1; 
+        }
+
+        //DotNetNuke.Services.Social.Messaging.Internal.InternalMessagingController.Instance.GetInbox()
+
+
     }
 }

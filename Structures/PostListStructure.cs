@@ -1,4 +1,4 @@
-﻿using CookComputing.XmlRpc;
+﻿using ActiveForumsTapatalk.XmlRpc;
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {
@@ -36,5 +36,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 
         [XmlRpcMember("breadcrumb")]
         public BreadcrumbStructure[] Breadcrumbs;
+
+        [XmlRpcMember("position")] 
+        public int Position;
     }
 }

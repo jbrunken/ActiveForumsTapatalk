@@ -1,0 +1,186 @@
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'{databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPosts]') AND type in (N'P', N'PC'))
+DROP PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPosts]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'{databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndex]') AND type in (N'P', N'PC'))
+DROP PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndex]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'{databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndexUnread]') AND type in (N'P', N'PC'))
+DROP PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndexUnread]
+GO
+
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+CREATE PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPosts]
+
+@PortalId int,
+@ModuleId int,
+@ForumId int, 
+@TopicId int,
+@UserId int,
+@RowIndex int, 
+@MaxRows int,
+@UpdateTrackingAndCounts bit = 1
+
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+
+	-- Populate our replyIndex table with the page of records we need
+	-- We do this so we can grab the max reply id for use in tracking
+	DECLARE @TopicPage TABLE(RowRank int NOT NULL, ContentId int NOT NULL, ReplyId int NOT NULL);
+	INSERT @TopicPage
+	SELECT RowRank, ContentId, ReplyId
+		FROM (SELECT ROW_NUMBER() OVER (Order By T.DateCreated ASC) as RowRank, T.ContentId, T.ReplyId
+				FROM	{databaseOwner}{objectQualifier}vw_activeforums_TopicView T 
+				WHERE   T.TopicId = @TopicId AND T.ForumId = @ForumId AND T.PortalId = @PortalId) AS RowIndexs
+		WHERE RowRank > @RowIndex AND RowRank <= (@RowIndex + @MaxRows)
+
+	-- Grab our page by joining our topic page against more stuff
+	SELECT	T.ForumId, T.TopicId, T.ReplyId, T.ContentID, T.DateCreated, T.DateUpdated,
+			T.Subject, T.Summary, C.Body,
+			T.AuthorId, 
+			IsNull(T.AuthorName,'anon') as AuthorName, 
+			IsNull(T.Username,IsNull(T.AuthorName,'anon')) as Username,
+			IsNull(T.FirstName,'') as FirstName, 
+			IsNull(T.LastName,'') as LastName,
+			IsNull(T.DisplayName,T.AuthorName) as DisplayName,
+			IsUserOnline = (CASE WHEN DATEDIFF(mi,p.DateLastActivity,GetDate()) <=1 THEN 1 ELSE 0 END)
+		FROM	@TopicPage AS TP INNER JOIN 
+				{databaseOwner}{objectQualifier}vw_activeforums_TopicView AS T ON TP.ContentId = T.ContentId INNER JOIN
+				{databaseOwner}{objectQualifier}activeforums_Content AS C ON T.ContentId = C.ContentId LEFT OUTER JOIN
+				{databaseOwner}{objectQualifier}activeforums_UserProfiles AS P ON C.AuthorId = P.UserId AND P.PortalId = @PortalId AND P.ModuleId = -1
+		ORDER BY TP.RowRank ASC
+
+
+	--Update View Count and Tracking
+	IF @UpdateTrackingAndCounts > 0
+		BEGIN
+			UPDATE {databaseOwner}{objectQualifier}activeforums_Topics SET ViewCount = (ViewCount+1) WHERE TopicId = @TopicId
+			IF @UserId > 0
+				BEGIN
+
+					EXEC {databaseOwner}{objectQualifier}activeforums_Forums_Tracking_UpdateUser @ModuleId, @UserId, @ForumId	
+					EXEC {databaseOwner}{objectQualifier}activeforums_UserProfiles_UpdateActivity @PortalId, @ModuleId, @UserId
+					
+					-- Update the last replyId if the last reply in the page is larger than the last reply the user has read
+					DECLARE @LastReplyId int
+					SELECT @LastReplyId = IsNull(MAX(ReplyId),0) FROM @TopicPage
+					
+					DECLARE @CurrentLastReplyId int
+					SELECT @CurrentLastReplyId = LastReplyId FROM {databaseOwner}{objectQualifier}activeforums_Topics_Tracking TT
+						WHERE TT.TopicId = @TopicId
+						
+					IF @LastReplyId > @CurrentLastReplyId
+						EXEC {databaseOwner}{objectQualifier}activeforums_Topics_Tracking_UpdateUser @ForumId, @TopicId, @LastReplyId, @UserId
+					
+					
+				END
+		END
+
+END
+
+GO
+
+
+CREATE PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndexUnread]
+
+@TopicId int,
+@UserId int
+
+AS
+BEGIN
+
+	-- Finds the index of the first unread post for a given topic & user
+
+	SET NOCOUNT ON;
+
+	-- If no topicId or User Id, return 0
+	IF @TopicId IS NULL OR @TopicId <= 0 OR @UserId IS NULL OR @UserId <= 0
+	BEGIN
+		SELECT 1 AS PostIndex
+		RETURN
+	END
+	
+	-- Find the last reply id that the user has read
+	DECLARE @LastReplyId int;
+	
+	SET @LastReplyId = (SELECT TOP 1 TT.LastReplyId FROM {databaseOwner}{objectQualifier}activeforums_Topics_Tracking TT
+							WHERE TT.TopicId = @TopicId AND TT.UserId = @UserId);
+	
+	-- If the user hasn't read anything, return 0						
+	IF @LastReplyId IS NULL
+	BEGIN
+		SELECT 1 AS PostIndex
+		RETURN
+	END
+
+	-- Populate our postIndex table
+	DECLARE @ReplyIndexes TABLE(rowRank int NOT NULL, replyId int NOT NULL);
+	INSERT @ReplyIndexes
+	SELECT ROW_NUMBER() OVER (Order By T.DateCreated ASC) as RowRank, T.ReplyId
+			FROM	{databaseOwner}{objectQualifier}vw_activeforums_TopicView T 
+			WHERE     (T.TopicId = @TopicId)
+	
+	-- Look for the first 2 rows where the replyId is greater than or equal to the last reply id
+	DECLARE @NewReplyIndexes TABLE(postIndex int NOT NULL);
+	INSERT @NewReplyIndexes
+	SELECT TOP 2 (RowRank - 1)
+		FROM @ReplyIndexes RI
+		WHERE RI.replyId >= @LastReplyId
+		ORDER BY RI.replyId ASC
+	
+	-- Return the greater reply id of the 2 rows or 0	
+	SELECT ISNULL(MAX(postIndex),0) AS PostIndex FROM @NewReplyIndexes
+
+		
+END    
+
+GO
+
+CREATE PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_Forum_TopicPostIndex]
+
+@ContentId int
+
+AS
+BEGIN
+
+	-- Finds the index of a post in a thread by content Id
+
+	SET NOCOUNT ON;
+
+	DECLARE @TopicId int;
+	
+	SET @TopicId = (SELECT TOP 1 topicId from {databaseOwner}{objectQualifier}vw_activeforums_TopicView T where T.ContentId = @ContentId)
+
+	IF @TopicId IS NULL
+		SET @TopicId = -1
+
+	SELECT
+		
+		RowIndex,
+		TopicId,
+		ContentId
+		
+	FROM (SELECT
+			T.TopicId,
+			T.ContentId,	
+			ROW_NUMBER() OVER (Order By T.DateCreated ASC) as RowIndex
+			FROM	{databaseOwner}{objectQualifier}vw_activeforums_TopicView T 
+			WHERE     (T.TopicId = @TopicId)) as ContentIndexes
+			
+    WHERE ContentId = @ContentId
+
+    
+END
+
+GO
