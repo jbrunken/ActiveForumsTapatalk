@@ -331,15 +331,18 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var body = Encoding.Default.GetString((byte[]) parameters[2]);
 
             var prefixId = parameters.Length >= 4 ? Convert.ToString(parameters[3]) : null;
-            var attachmentIds = parameters.Length >= 5 ? (string[])parameters[4] : null;
+            var attachmentIdObjArray = parameters.Length >= 5 ? (object[])parameters[4] : null;
             var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
-            
+
+            var attachmentIds = (attachmentIdObjArray != null)
+                        ? attachmentIdObjArray.Select(Convert.ToString)
+                        : new string[] { }; 
 
             return NewTopic(forumId, subject, body, prefixId, attachmentIds, groupId);
 
         }
 
-        private XmlRpcStruct NewTopic(int forumId, string subject, string body, string prefixId, string[] attachmentIds, string groupId)
+        private XmlRpcStruct NewTopic(int forumId, string subject, string body, string prefixId, IEnumerable<string> attachmentIds, string groupId)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
             
@@ -758,14 +761,18 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var subject = Encoding.Default.GetString((byte[]) parameters[2]);
             var body = Encoding.Default.GetString((byte[]) parameters[3]);
 
-            var attachmentIds = parameters.Length >= 5 ? (string[]) parameters[4] : null;
+            var attachmentIdObjArray = parameters.Length >= 5 ? (object[]) parameters[4] : null;
             var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
-            var returnHtml = parameters.Length >= 7 ? Convert.ToBoolean(parameters[6]) : false;
+            var returnHtml = parameters.Length >= 7 && Convert.ToBoolean(parameters[6]);
+
+            var attachmentIds = (attachmentIdObjArray != null)
+                                    ? attachmentIdObjArray.Select(Convert.ToString)
+                                    : new string[] {}; 
 
             return Reply(forumId, topicId, subject, body, attachmentIds, groupId, returnHtml);
         }
 
-        private XmlRpcStruct Reply(int forumId, int topicId, string subject, string body, string[] attachmentIds, string groupID, bool returnHtml)
+        private XmlRpcStruct Reply(int forumId, int topicId, string subject, string body, IEnumerable<string> attachmentIds, string groupID, bool returnHtml)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -1324,19 +1331,20 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
                     var isEmoticon = src.Value.IndexOf("emoticon", 0, StringComparison.InvariantCultureIgnoreCase) >= 0;
 
-                    var url = src.Value;
+                    var url = src.Value.Trim();
                     var request = HttpContext.Current.Request;
 
                     // Make a fully qualifed URL
-                    if(!url.StartsWith("/"))
+                    if (!url.ToLower().StartsWith("http"))
                     {
-                        url = string.Format("{0}://{1}{2}", request.Url.Scheme, request.Url.Host, url);
+                        var rootDirectory = url.StartsWith("/") ? string.Empty : "/";
+                        url = string.Format("{0}://{1}{2}{3}", request.Url.Scheme, request.Url.Host, rootDirectory,  url);
                     }
 
                     if(mode == ProcessModes.Quote && isEmoticon)
                         return;
 
-                    output.AppendFormat(isEmoticon ? "<img src='{0}' />" : "[img]{0}[/img]", src.Value);
+                    output.AppendFormat(isEmoticon ? "<img src='{0}' />" : "[img]{0}[/img]", url);
 
                     return;
 
