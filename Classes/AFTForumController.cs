@@ -273,6 +273,31 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             return result.HasValue ? result.Value : 1; 
         }
 
+        public IEnumerable<SubscribedForum> GetSubscribedForums(int portalId, int moduleId, int userId, string forumIds)
+        {
+            IEnumerable<SubscribedForum> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<SubscribedForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Subscribed", portalId, moduleId, userId, forumIds);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ForumTopic> GetSubscribedTopics(int portalId, int moduleId, int userId, string forumIds, int rowIndex, int maxRows)
+        {
+            IEnumerable<ForumTopic> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Subscribed", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+            }
+
+            return result; 
+        }
+
+
         //DotNetNuke.Services.Social.Messaging.Internal.InternalMessagingController.Instance.GetInbox()
 
 

@@ -99,6 +99,7 @@
     <Compile Include="Classes\ActiveForumsTapatalkModuleContext.cs" />
     <Compile Include="Classes\AFTForumController.cs" />
     <Compile Include="Classes\PostIndex.cs" />
+    <Compile Include="Classes\SubscribedForum.cs" />
     <Compile Include="Structures\BreadcrumbStructure.cs" />
     <Compile Include="Structures\PostListStructure.cs" />
     <Compile Include="Structures\ForumStructure.cs" />
@@ -106,6 +107,8 @@
     <Compile Include="Classes\ForumTopic.cs" />
     <Compile Include="Classes\ForumPost.cs" />
     <Compile Include="Classes\ForumPostSummary.cs" />
+    <Compile Include="Structures\SubscribedForumStructure.cs" />
+    <Compile Include="Structures\SubscribedTopicStructure.cs" />
     <Compile Include="Structures\TopicListStructure.cs" />
     <Compile Include="Classes\ForumTopicSummary.cs" />
     <Compile Include="Classes\Permissions.cs" />

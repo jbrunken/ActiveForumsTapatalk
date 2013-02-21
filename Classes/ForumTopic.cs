@@ -39,5 +39,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
         public int UserLastReplyRead { get; set; }
         public int UserLastTopicRead { get; set; }
         public int SubscriptionType { get; set; }
+
+        // Used by GetSubscribedTopics
+        public int SubscribedTopicCount { get; set; } 
+        public string ForumName { get; set; }
     }
 }
