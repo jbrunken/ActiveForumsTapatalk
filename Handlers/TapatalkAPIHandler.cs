@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -37,10 +38,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var rpcstruct = new XmlRpcStruct
             {
-                {"sys_version", "0.0.2"}, 
                 {"version", "dev"}, 
                 {"is_open", aftContext.ModuleSettings.IsOpen}, 
-                {"api_level", "3"},
+                {"api_level", "4"},
                 {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
                 {"disable_bbcode", "0"},
                 {"min_search_length", "4"},
@@ -53,19 +53,26 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"announcement", "1"},
                 {"no_refresh_on_post", "1"},
                 {"subscribe_load", "1"},
+                {"user_id", "1"},
                 {"avatar", "0"},
                 {"disable_subscribe_forum", "0"},
+                {"get_latest_topic", "1"},
+                {"mark_read", "1"},
+                {"mark_forum", "1"},
+                {"get_forum_status", "1"},
+                {"hide_forum_id", ""},
+                {"mark_topic_read", "1"},
+                {"get_topic_status", "1"},
+                {"get_participated_forum", "1"},
+                {"get_forum", "1"},
+                /* Not Yet Implemented */
                 {"can_unread", "0"},
                 {"conversation", "0"},
                 {"inbox_stat", "0"},
-                {"push", "0"},
-                {"hide_forum_id", ""},
+                {"push", "0"},   
                 {"allow_moderate", "0"},
                 {"report_post", "0"},
                 {"report_pm", "0"},
-                {"mark_read", "0"},
-                {"mark_forum", "0"},
-                {"get_latest_topic", "0"},
                 {"get_id_by_url", "0"},
                 {"delete_reason", "0"},
                 {"mod_approve", "0"},
@@ -75,13 +82,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"mass_subscribe", "0"},
                 {"emoji", "0"},
                 {"searchid", "0"},
-                {"user_id", "0"},
-                {"get_forum", "0"},
-                {"get_forum_status", "0"},
-                {"get_participated_forum", "0"},
                 {"get_smiles", "0"},
                 {"get_online_users", "0"},
-                {"mark_topic_read", "0"},
                 {"mark_pm_unread", "0"},
                 {"advanced_search", "0"},
                 {"get_alert", "0"},
@@ -95,19 +97,31 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
 
         [XmlRpcMethod("get_forum")]
-        public ForumStructure[] GetForums()
+        public ForumStructure[] GetForums(params object[] parameters)
+        {
+            var includeDescription = (parameters == null || parameters.Length == 0) || Convert.ToBoolean(parameters[0]);
+
+            if (parameters == null || parameters.Length <= 1)
+                return GetForums(includeDescription);
+
+            var forumId = Convert.ToString(parameters[1]);
+
+            return GetForums(forumId, includeDescription);
+        }
+
+        private ForumStructure[] GetForums(bool includeDescription)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
             if (aftContext == null || aftContext.Module == null)
                 throw new XmlRpcFaultException(100, "Invalid Context");
 
-            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false"); 
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
             var fc = new AFTForumController();
             var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, aftContext.Module.PortalID, aftContext.ModuleSettings.ForumModuleId, "CanRead");
             var forumTable = fc.GetForumView(aftContext.Module.PortalID, aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, aftContext.ForumUser.IsSuperUser, forumIds);
-            var forumSubscriptions =  fc.GetSubscriptionsForUser(aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, null, 0).ToList();
+            var forumSubscriptions = fc.GetSubscriptionsForUser(aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, null, 0).ToList();
 
             var result = new List<ForumStructure>();
 
@@ -117,8 +131,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var groups = forumTable.AsEnumerable()
                 .Select(r => new
                 {
-                    ID = Convert.ToInt32(r ["ForumGroupId"]), 
-                    Name = r["GroupName"].ToString(), 
+                    ID = Convert.ToInt32(r["ForumGroupId"]),
+                    Name = r["GroupName"].ToString(),
                     SortOrder = Convert.ToInt32(r["GroupSort"]),
                     Active = Convert.ToBoolean(r["GroupActive"])
                 }).Distinct().Where(o => o.Active).OrderBy(o => o.SortOrder);
@@ -128,11 +142,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 .Select(f => new
                 {
                     ID = Convert.ToInt32(f["ForumId"]),
-                    ForumGroupId = Convert.ToInt32(f["ForumGroupId"]), 
-                    Name = f["ForumName"].ToString(), 
-                    Description = f["ForumDesc"].ToString(), 
-                    ParentForumId = Convert.ToInt32(f["ParentForumId"]), 
-                    ReadRoles = f["CanRead"].ToString(), 
+                    ForumGroupId = Convert.ToInt32(f["ForumGroupId"]),
+                    Name = f["ForumName"].ToString(),
+                    Description = f["ForumDesc"].ToString(),
+                    ParentForumId = Convert.ToInt32(f["ParentForumId"]),
+                    ReadRoles = f["CanRead"].ToString(),
                     SubscribeRoles = f["CanSubscribe"].ToString(),
                     LastRead = Convert.ToDateTime(f["LastRead"]),
                     LastPostDate = Convert.ToDateTime(f["LastPostDate"]),
@@ -142,18 +156,18 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 .Where(o => o.Active && ActiveForums.Permissions.HasPerm(o.ReadRoles, aftContext.ForumUser.UserRoles))
                 .OrderBy(o => o.SortOrder).ToList();
 
-            foreach(var group in groups)
+            foreach (var group in groups)
             {
                 // Find any root level forums for this group
                 var groupForums = visibleForums.Where(vf => vf.ParentForumId == 0 && vf.ForumGroupId == group.ID).ToList();
 
-                if(!groupForums.Any())
+                if (!groupForums.Any())
                     continue;
 
                 // Create the structure to represent the group
                 var groupStructure = new ForumStructure()
                 {
-                    ForumId =  "G" + group.ID.ToString(), // Append G to distinguish between forums and groups with the same id.
+                    ForumId = "G" + group.ID.ToString(), // Append G to distinguish between forums and groups with the same id.
                     Name = group.Name.ToBytes(),
                     Description = null,
                     ParentId = "-1",
@@ -165,27 +179,25 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     Url = null,
                     IsGroup = true,
                 };
- 
+
                 // Add the Child Forums
                 var groupChildren = new List<ForumStructure>();
-                foreach(var groupForum in groupForums)
+                foreach (var groupForum in groupForums)
                 {
                     var forumStructure = new ForumStructure
                     {
                         ForumId = groupForum.ID.ToString(),
                         Name = Utilities.StripHTMLTag(groupForum.Name).ToBytes(),
-                        Description = Utilities.StripHTMLTag(groupForum.Description).ToBytes(),
+                        Description = includeDescription ? Utilities.StripHTMLTag(groupForum.Description).ToBytes() : string.Empty.ToBytes(),
                         ParentId = 'G' + group.ID.ToString(),
                         LogoUrl = null,
-                        HasNewPosts = aftContext.UserId > 0 &&  groupForum.LastPostDate > groupForum.LastRead,
+                        HasNewPosts = aftContext.UserId > 0 && groupForum.LastPostDate > groupForum.LastRead,
                         IsProtected = false,
                         IsSubscribed = forumSubscriptions.Any(fs => fs.ForumId == groupForum.ID),
                         CanSubscribe = ActiveForums.Permissions.HasPerm(groupForum.SubscribeRoles, aftContext.ForumUser.UserRoles),
                         Url = null,
                         IsGroup = false
                     };
-
-                    
 
                     // Add any sub-forums
 
@@ -201,7 +213,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                             {
                                 ForumId = subForum.ID.ToString(),
                                 Name = Utilities.StripHTMLTag(subForum.Name).ToBytes(),
-                                Description = Utilities.StripHTMLTag(subForum.Description).ToBytes(),
+                                Description = includeDescription ? Utilities.StripHTMLTag(subForum.Description).ToBytes() : String.Empty.ToBytes(),
                                 ParentId = groupForum.ID.ToString(),
                                 LogoUrl = null,
                                 HasNewPosts = aftContext.UserId > 0 && subForum.LastPostDate > subForum.LastRead,
@@ -225,6 +237,208 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
 
             return result.ToArray();
+        }
+
+        private ForumStructure[] GetForums(string forumId, bool includeDescription)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, aftContext.Module.PortalID, aftContext.ModuleSettings.ForumModuleId, "CanRead");
+            var forumTable = fc.GetForumView(aftContext.Module.PortalID, aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, aftContext.ForumUser.IsSuperUser, forumIds);
+            var forumSubscriptions = fc.GetSubscriptionsForUser(aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, null, 0).ToList();
+
+            var result = new List<ForumStructure>();
+
+            // Note that all the fields in the DataTable are strings if they come back from the cache, so they have to be converted appropriately.
+
+            // Get the distict list of groups
+            /*
+            var groups = forumTable.AsEnumerable()
+                .Select(r => new
+                {
+                    ID = Convert.ToInt32(r["ForumGroupId"]),
+                    Name = r["GroupName"].ToString(),
+                    SortOrder = Convert.ToInt32(r["GroupSort"]),
+                    Active = Convert.ToBoolean(r["GroupActive"])
+                }).Distinct().Where(o => o.Active).OrderBy(o => o.SortOrder);
+             */
+
+            // Get all forums the user can read
+            var visibleForums = forumTable.AsEnumerable()
+                .Select(f => new
+                {
+                    ID = Convert.ToInt32(f["ForumId"]),
+                    ForumGroupId = Convert.ToInt32(f["ForumGroupId"]),
+                    Name = f["ForumName"].ToString(),
+                    Description = f["ForumDesc"].ToString(),
+                    ParentForumId = Convert.ToInt32(f["ParentForumId"]),
+                    ReadRoles = f["CanRead"].ToString(),
+                    SubscribeRoles = f["CanSubscribe"].ToString(),
+                    LastRead = Convert.ToDateTime(f["LastRead"]),
+                    LastPostDate = Convert.ToDateTime(f["LastPostDate"]),
+                    SortOrder = Convert.ToInt32(f["ForumSort"]),
+                    Active = Convert.ToBoolean(f["ForumActive"])
+                })
+                .Where(o => o.Active && ActiveForums.Permissions.HasPerm(o.ReadRoles, aftContext.ForumUser.UserRoles))
+                .OrderBy(o => o.SortOrder).ToList();
+
+
+            if(forumId.StartsWith("G"))
+            {
+                var groupId = Convert.ToInt32(forumId.Substring(1));
+                
+                foreach(var forum in visibleForums.Where(f => f.ForumGroupId == groupId && f.ParentForumId == 0))
+                {
+                    var forumStructure = new ForumStructure
+                    {
+                        ForumId = forum.ID.ToString(),
+                        Name = Utilities.StripHTMLTag(forum.Name).ToBytes(),
+                        Description = includeDescription ? Utilities.StripHTMLTag(forum.Description).ToBytes() : string.Empty.ToBytes(),
+                        ParentId = forumId,
+                        LogoUrl = null,
+                        HasNewPosts = aftContext.UserId > 0 && forum.LastPostDate > forum.LastRead,
+                        IsProtected = false,
+                        IsSubscribed = forumSubscriptions.Any(fs => fs.ForumId == forum.ID),
+                        CanSubscribe = ActiveForums.Permissions.HasPerm(forum.SubscribeRoles, aftContext.ForumUser.UserRoles),
+                        Url = null,
+                        IsGroup = false
+                    };
+
+                    result.Add(forumStructure);
+                }
+            }
+            else
+            {
+                foreach (var forum in visibleForums.Where(f => f.ParentForumId == int.Parse(forumId)))
+                {
+                    var forumStructure = new ForumStructure
+                    {
+                        ForumId = forum.ID.ToString(),
+                        Name = Utilities.StripHTMLTag(forum.Name).ToBytes(),
+                        Description = includeDescription ? Utilities.StripHTMLTag(forum.Description).ToBytes() : string.Empty.ToBytes(),
+                        ParentId = forumId,
+                        LogoUrl = null,
+                        HasNewPosts = aftContext.UserId > 0 && forum.LastPostDate > forum.LastRead,
+                        IsProtected = false,
+                        IsSubscribed = forumSubscriptions.Any(fs => fs.ForumId == forum.ID),
+                        CanSubscribe = ActiveForums.Permissions.HasPerm(forum.SubscribeRoles, aftContext.ForumUser.UserRoles),
+                        Url = null,
+                        IsGroup = false
+                    };
+
+                    result.Add(forumStructure);
+                }
+            }
+
+            return result.ToArray();
+        }
+
+
+        [XmlRpcMethod("mark_all_as_read")]
+        public XmlRpcStruct MarkForumAsRead(params object[] parameters)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var forumId = (parameters != null && parameters.Any()) ? Convert.ToString(parameters[0]) : "0";
+
+            if(!forumId.StartsWith("G")) // Don't do anything for groups
+                DataProvider.Instance().Utility_MarkAllRead(aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, int.Parse(forumId));
+
+            return new XmlRpcStruct
+            {
+                {"result", true}
+            };
+        }
+
+        [XmlRpcMethod("get_participated_forum")]
+        public XmlRpcStruct GetParticipatedForums()
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var subscribedForums = fc.GetParticipatedForums(portalId, forumModuleId, userId, forumIds).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"total_forums_num", subscribedForums.Count},
+                           {"forums", subscribedForums.Select(f => new ListForumStructure
+                                {
+                                    ForumId = f.ForumId.ToString(),
+                                    ForumName = f.ForumName.ToBytes(),
+                                    IsProtected = false,
+                                    HasNewPosts =  f.LastPostDate > f.LastAccessDate
+                                }).ToArray()}
+                       };
+        }
+
+        [XmlRpcMethod("get_forum_status")]
+        public XmlRpcStruct GetForumStatus(params object[] parameters)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead") + string.Empty;
+
+            // Clean up our forum id list before we split it up.
+            forumIds = Regex.Replace(forumIds, @"\;+$", string.Empty);
+
+            var forumIdList = !string.IsNullOrWhiteSpace(forumIds)
+                                  ? forumIds.Split(';').Select(int.Parse).ToList()
+                                  : new List<int>();
+
+            // Intersect requested forums with avialable forums
+            var requestedForumIds = (parameters != null && parameters.Any())
+                                        ? ((object[]) parameters[0]).Select(Convert.ToInt32).Where(forumIdList.Contains)
+                                        : new int[] {};
+
+            // Convert the new list of forums back to a string for the proc.
+            forumIds = requestedForumIds.Aggregate(string.Empty, (current, id) => current + (id.ToString() + ";"));
+
+            var forumStatus = fc.GetForumStatus(portalId, forumModuleId, userId, forumIds).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"forums", forumStatus.Select(f => new ListForumStructure
+                                {
+                                    ForumId = f.ForumId.ToString(),
+                                    ForumName = f.ForumName.ToBytes(),
+                                    IsProtected = false,
+                                    HasNewPosts =  f.LastPostDate > f.LastAccessDate
+                                }).ToArray()}
+                       };
         }
 
         #endregion
@@ -304,7 +518,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    AuthorName = GetAuthorName(mainSettings, t).ToBytes(),
                                                    CanSubscribe = canSubscribe,
                                                    ForumId = forumId.ToString(),
-                                                   HasNewPosts = t.LastReplyId > t.UserLastReplyRead,
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
                                                    IsLocked = t.IsLocked,
                                                    IsSubscribed = t.SubscriptionType > 0,
                                                    LastReplyDate = t.LastReplyDate,
@@ -327,8 +541,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var forumId = Convert.ToInt32(parameters[0]);
-            var subject = Encoding.Default.GetString((byte[]) parameters[1]);
-            var body = Encoding.Default.GetString((byte[]) parameters[2]);
+            var subject = Encoding.UTF8.GetString((byte[])parameters[1]);
+            var body = Encoding.UTF8.GetString((byte[])parameters[2]);
 
             var prefixId = parameters.Length >= 4 ? Convert.ToString(parameters[3]) : null;
             var attachmentIdObjArray = parameters.Length >= 5 ? (object[])parameters[4] : null;
@@ -501,6 +715,302 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return result;
 
         }
+
+        [XmlRpcMethod("get_unread_topic")]
+        public XmlRpcStruct GetUnreadTopics(params object[] parameters)
+        {
+            var startIndex = parameters.Any() ? Convert.ToInt32(parameters[0]) : 0;
+            var endIndex = parameters.Count() > 1 ? Convert.ToInt32(parameters[1]) : startIndex + 49;
+            var searchId = parameters.Count() > 2 ? Convert.ToString(parameters[2]) : null;
+            var filters = parameters.Count() > 3 ? parameters[3] : null;
+
+            return GetUnreadTopics(startIndex, endIndex, searchId, filters);
+        }
+
+        private XmlRpcStruct GetUnreadTopics(int startIndex, int endIndex, string searchId, object filters)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // If user is not signed in, don't return any unread topics
+            if(userId <= 0)
+                return new XmlRpcStruct
+                       {
+                           {"total_topic_num", 0},
+                           {"topics", new object[]{}}
+                       };  
+
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var maxRows = endIndex + 1 - startIndex;
+
+            var unreadTopics = fc.GetUnreadTopics(portalId, forumModuleId, userId, forumIds, startIndex, maxRows).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"total_topic_num", unreadTopics.Count > 0 ? unreadTopics[0].TopicCount : 0},
+                           {"topics", unreadTopics.Select(t => new ExtendedTopicStructure{ 
+                                                   TopicId = t.TopicId.ToString(),
+                                                   AuthorAvatarUrl = GetAvatarUrl(t.LastReplyAuthorId),
+                                                   AuthorId = t.LastReplyAuthorId.ToString(),
+                                                   AuthorName = GetLastReplyAuthorName(mainSettings, t).ToBytes(),
+                                                   ForumId = t.ForumId.ToString(),
+                                                   ForumName = t.ForumName.ToBytes(),
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                                   IsLocked = t.IsLocked,
+                                                   IsSubscribed = t.SubscriptionType > 0,
+                                                   CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fc.GetForumPermissions(t.ForumId).CanSubscribe), // GetforumPermissions uses cache so it shouldn't be a performance issue
+                                                   ReplyCount = t.ReplyCount,
+                                                   Summary = GetSummary(null, t.LastReplyBody).ToBytes(),
+                                                   ViewCount = t.ViewCount,
+                                                   DateCreated = t.LastReplyDate,
+                                                   Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
+                                               }).ToArray()}
+                       };  
+        }
+
+        [XmlRpcMethod("get_participated_topic")]
+        public XmlRpcStruct GetParticipatedTopics(params object[] parameters)
+        {
+            var userName = parameters.Any() ?  Encoding.UTF8.GetString((byte[])parameters[0]) : null;
+            var startIndex = parameters.Count() > 1 ? Convert.ToInt32(parameters[1]) : 0;
+            var endIndex = parameters.Count() > 2 ? Convert.ToInt32(parameters[2]) : startIndex + 49;
+            var searchId = parameters.Count() > 3 ? Convert.ToString(parameters[3]) : null;
+            var userId = parameters.Count() > 4 ? Convert.ToInt32(parameters[4]) : 0;
+
+            return GetParticipatedTopics(userName, startIndex, endIndex, searchId, userId);
+        }
+
+        private XmlRpcStruct GetParticipatedTopics(string participantUserName, int startIndex, int endIndex, string searchId, int participantUserId)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Lookup the user id for the username if needed
+            if(participantUserId <= 0)
+            {
+                var forumUser = new ActiveForums.UserController().GetUser(aftContext.Portal.PortalID, aftContext.ModuleSettings.ForumModuleId, participantUserName);
+
+                if (forumUser != null)
+                    participantUserId = forumUser.UserId;
+            }
+
+            // If we don't have a valid participant user id at this point, return invalid result
+            if(participantUserId <= 0)
+            {
+                return new XmlRpcStruct
+                           {
+                               {"result", false},
+                               {"result_text", "User Not Found".ToBytes()},
+                               {"total_topic_num", 0},
+                               {"total_unread_num", 0}
+                           };
+            }
+
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var maxRows = endIndex + 1 - startIndex;
+
+            var participatedTopics = fc.GetParticipatedTopics(portalId, forumModuleId, userId, forumIds, participantUserId, startIndex, maxRows).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"result", true},
+                           {"total_topic_num", participatedTopics.Count > 0 ? participatedTopics[0].TopicCount : 0},
+                           {"total_unread_num", participatedTopics.Count > 0 ? participatedTopics[0].UnreadTopicCount : 0},
+                           {"topics", participatedTopics.Select(t => new ExtendedTopicStructure{ 
+                                                   TopicId = t.TopicId.ToString(),
+                                                   AuthorAvatarUrl = GetAvatarUrl(t.LastReplyAuthorId),
+                                                   AuthorId = t.LastReplyAuthorId.ToString(),
+                                                   AuthorName = GetLastReplyAuthorName(mainSettings, t).ToBytes(),
+                                                   ForumId = t.ForumId.ToString(),
+                                                   ForumName = t.ForumName.ToBytes(),
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                                   IsLocked = t.IsLocked,
+                                                   IsSubscribed = t.SubscriptionType > 0,
+                                                   CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fc.GetForumPermissions(t.ForumId).CanSubscribe), // GetforumPermissions uses cache so it shouldn't be a performance issue
+                                                   ReplyCount = t.ReplyCount,
+                                                   Summary = GetSummary(null, t.LastReplyBody).ToBytes(),
+                                                   ViewCount = t.ViewCount,
+                                                   DateCreated = t.LastReplyDate,
+                                                   Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
+                                               }).ToArray()}
+                       };
+        }
+
+
+        [XmlRpcMethod("get_new_topic")]
+        public XmlRpcStruct GetNewTopics()
+        {
+            return GetLatestTopics(0, 100, null, null);
+        }
+
+
+        [XmlRpcMethod("get_latest_topic")]
+        public XmlRpcStruct GetLatestTopics(params object[] parameters)
+        {
+            var startIndex = parameters.Any() ? Convert.ToInt32(parameters[0]) : 0;
+            var endIndex = parameters.Count() > 1 ? Convert.ToInt32(parameters[1]) : startIndex + 49;
+            var searchId = parameters.Count() > 2 ? Convert.ToString(parameters[2]) : null;
+            var filters = parameters.Count() > 3 ? parameters[3] : null;
+
+            return GetLatestTopics(startIndex, endIndex, searchId, filters);
+        }
+
+        private XmlRpcStruct GetLatestTopics(int startIndex, int endIndex, string searchId, object filters)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var maxRows = endIndex + 1 - startIndex;
+
+            var latestTopics = fc.GetLatestTopics(portalId, forumModuleId, userId, forumIds, startIndex, maxRows).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"result", true},
+                           {"total_topic_num", latestTopics.Count > 0 ? latestTopics[0].TopicCount : 0},
+                           {"topics", latestTopics.Select(t => new ExtendedTopicStructure{ 
+                                                   TopicId = t.TopicId.ToString(),
+                                                   AuthorAvatarUrl = GetAvatarUrl(t.LastReplyAuthorId),
+                                                   AuthorId = t.LastReplyAuthorId.ToString(),
+                                                   AuthorName = GetLastReplyAuthorName(mainSettings, t).ToBytes(),
+                                                   ForumId = t.ForumId.ToString(),
+                                                   ForumName = t.ForumName.ToBytes(),
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                                   IsLocked = t.IsLocked,
+                                                   IsSubscribed = t.SubscriptionType > 0,
+                                                   CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fc.GetForumPermissions(t.ForumId).CanSubscribe), // GetforumPermissions uses cache so it shouldn't be a performance issue
+                                                   ReplyCount = t.ReplyCount,
+                                                   Summary = GetSummary(null, t.LastReplyBody).ToBytes(),
+                                                   ViewCount = t.ViewCount,
+                                                   DateCreated = t.LastReplyDate,
+                                                   Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
+                                               }).ToArray()}
+                       };
+        }
+
+
+        [XmlRpcMethod("get_topic_status")]
+        public XmlRpcStruct GetTopicStatus(params object[] parameters)
+        {
+            var topicIds = parameters.Any() ? ((object[])parameters[0]).Select(Convert.ToInt32) : new int[]{};
+
+            return GetTopicStatus(topicIds);
+        }
+
+        private XmlRpcStruct GetTopicStatus(IEnumerable<int> topicIds)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var topicIdsString = topicIds.Aggregate(string.Empty, (current, topicId) => current + (topicId.ToString() + ";"));
+
+            var unreadTopics = fc.GetTopicStatus(portalId, forumModuleId, userId, forumIds, topicIdsString).ToList();
+
+            return new XmlRpcStruct
+                       {
+                           {"result", true},
+                           {"status", unreadTopics.Select(t => new TopicStatusStructure(){ 
+                                                   TopicId = t.TopicId.ToString(),
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                                   IsLocked = t.IsLocked,
+                                                   IsSubscribed = t.SubscriptionType > 0,
+                                                   CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fc.GetForumPermissions(t.ForumId).CanSubscribe), // GetforumPermissions uses cache so it shouldn't be a performance issue
+                                                   ReplyCount = t.ReplyCount,
+                                                   ViewCount = t.ViewCount,
+                                                   LastReplyDate = t.LastReplyDate
+                                               }).ToArray()}
+                       };
+        }
+
+        [XmlRpcMethod("mark_topic_read")]
+        public XmlRpcStruct MarkTopicsRead(params object[] parameters)
+        {
+            var topicIds = ((object[]) parameters[0]).Select(Convert.ToInt32);
+
+            return MarkTopicsRead(topicIds);
+        }
+
+        public XmlRpcStruct MarkTopicsRead(IEnumerable<int> topicIds)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+            var topicIdsStr = topicIds.Aggregate(string.Empty, (current, topicId) => current + (topicId.ToString() + ";"));
+
+            fc.MarkTopicsRead(portalId, forumModuleId, userId, forumIds, topicIdsStr);
+
+            return new XmlRpcStruct
+            {
+                {"result", true}
+            };
+        }
+
 
         #endregion
 
@@ -758,8 +1268,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var forumId = Convert.ToInt32(parameters[0]);
             var topicId = Convert.ToInt32(parameters[1]);
-            var subject = Encoding.Default.GetString((byte[]) parameters[2]);
-            var body = Encoding.Default.GetString((byte[]) parameters[3]);
+            var subject = Encoding.UTF8.GetString((byte[]) parameters[2]);
+            var body = Encoding.UTF8.GetString((byte[])parameters[3]);
 
             var attachmentIdObjArray = parameters.Length >= 5 ? (object[]) parameters[4] : null;
             var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
@@ -936,8 +1446,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             if (parameters.Length < 2)
                 throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
 
-            var login = Encoding.Default.GetString((byte[]) parameters[0]);
-            var password = Encoding.Default.GetString((byte[]) parameters[1]);
+            var login = Encoding.UTF8.GetString((byte[]) parameters[0]);
+            var password = Encoding.UTF8.GetString((byte[])parameters[1]);
 
             return Login(login, password);
         }
@@ -980,6 +1490,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     break;
             }
 
+            User forumUser = null;
 
             if(result)
             { 
@@ -1005,10 +1516,14 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
 
                     Context.Response.SetCookie(authCookie);
+
+                    forumUser = new ActiveForums.UserController().GetUser(aftContext.Module.PortalID, aftContext.ModuleSettings.ForumModuleId, userInfo.UserID);
                 }
             }
 
             Context.Response.AddHeader("Mobiquo_is_login", result ? "true" : "false"); 
+
+            
 
             var rpcstruct = new XmlRpcStruct
                                 {
@@ -1017,6 +1532,17 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                     {"can_upload_avatar", false}
                                 };
           
+            if(result && forumUser != null)
+            {
+                rpcstruct.Add("user_id", forumUser.UserId.ToString());
+                rpcstruct.Add("username", forumUser.UserName.ToBytes());
+                rpcstruct.Add("email", forumUser.Email.ToBytes());
+                rpcstruct.Add("usergroup_id", new string[]{});
+                rpcstruct.Add("post_count", forumUser.PostCount);
+                rpcstruct.Add("icon_url", GetAvatarUrl(forumUser.UserId));
+                
+            }
+
 
             return rpcstruct;
 
@@ -1043,7 +1569,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
         #endregion
 
-        #region Subscribe API
+        #region Subscribe API (Feature Complete)
 
         [XmlRpcMethod("subscribe_forum")]
         public XmlRpcStruct SubscribeForum(params object[] parameters)
@@ -1155,13 +1681,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return new XmlRpcStruct
                        {
                            {"total_forums_num", subscribedForums.Count},
-                           {"forums", subscribedForums.Select(f => new SubscribedForumStructure
+                           {"forums", subscribedForums.Select(f => new ListForumStructure
                                 {
                                     ForumId = f.ForumId.ToString(),
                                     ForumName = f.ForumName.ToBytes(),
                                     IsProtected = false,
-                                    HasNewPosts =
-                                        f.LastPostDate > f.LastAccessDate
+                                    HasNewPosts =  f.LastPostDate > f.LastAccessDate
                                 }).ToArray()}
                        };
         }
@@ -1210,25 +1735,24 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             return new XmlRpcStruct
                        {
-                           {"total_topic_num", subscribedTopics.Count > 0 ? subscribedTopics[0].SubscribedTopicCount : 0},
-                           {"topics", subscribedTopics.Select(t => new SubscribedTopicStructure{ 
+                           {"total_topic_num", subscribedTopics.Count > 0 ? subscribedTopics[0].TopicCount : 0},
+                           {"topics", subscribedTopics.Select(t => new ExtendedTopicStructure{ 
                                                    TopicId = t.TopicId.ToString(),
-                                                   AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, t.AuthorId),
-                                                   AuthorName = GetAuthorName(mainSettings, t).ToBytes(),
+                                                   AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, t.LastReplyAuthorId),
+                                                   AuthorName = GetLastReplyAuthorName(mainSettings, t).ToBytes(),
+                                                   AuthorId = t.LastReplyAuthorId.ToString(),
                                                    ForumId = t.ForumId.ToString(),
                                                    ForumName = t.ForumName.ToBytes(),
-                                                   HasNewPosts = t.LastReplyId > t.UserLastReplyRead,
+                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
                                                    IsLocked = t.IsLocked,
                                                    ReplyCount = t.ReplyCount,
-                                                   Summary = GetSummary(t.Summary, t.Body).ToBytes(),
+                                                   Summary = GetSummary(null, t.LastReplyBody).ToBytes(),
                                                    ViewCount = t.ViewCount,
-                                                   DateCreated = t.DateCreated,
+                                                   DateCreated = t.LastReplyDate,
                                                    Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                                }).ToArray()}
                        };   
         }
-
-
 
         #endregion
 
@@ -1252,7 +1776,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         {
             input = input.Replace("<", "&lt;");
             input = input.Replace(">", "&gt;");
-            
+
+            input = input.Replace("\r\n", "\n");
             input = input.Trim(new [] {' ', '\n', '\r', '\t'}).Replace("\n", "<br />");
 
             input = Regex.Replace(input, @"\[quote\=\'([^\]]+?)\'\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
@@ -1504,6 +2029,27 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
         }
 
+        private static string GetLastReplyAuthorName(SettingsInfo settings, ForumTopic topic)
+        {
+            if (topic == null || topic.AuthorId <= 0)
+                return "Guest";
+
+            switch (settings.UserNameDisplay.ToUpperInvariant())
+            {
+                case "USERNAME":
+                    return topic.LastReplyUserName.Trim();
+                case "FULLNAME":
+                    return (topic.LastReplyFirstName.Trim() + " " + topic.LastReplyLastName.Trim());
+                case "FIRSTNAME":
+                    return topic.LastReplyFirstName.Trim();
+                case "LASTNAME":
+                    return topic.LastReplyLastName.Trim();
+                default:
+                    return topic.LastReplyDisplayName.Trim();
+            }
+
+        }
+
         private static string GetAuthorName(SettingsInfo settings, ForumPost post)
         {
             if (post == null || post.AuthorId <= 0)
@@ -1541,7 +2087,19 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
         }
 
+        private static string GetAvatarUrl(int userId)
+        {
+            const string urlTemplate = "{0}://{1}{2}";
+            const string profilePathTemplate = "~/profilepic.ashx";
+
+            var request = HttpContext.Current.Request;
+
+            var profilePath = string.Format(urlTemplate, request.Url.Scheme, request.Url.Host, VirtualPathUtility.ToAbsolute(profilePathTemplate));
+
+            return string.Format("{0}?userId={1}&w=64&h=64", profilePath, userId);
+        }
+
         #endregion
 
     }
-}
+} 

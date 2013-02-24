@@ -22,6 +22,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
         public int AuthorId { get; set; }
         public string AuthorName { get; set; }
         public string Body { get; set; }
+        public string LastReplyBody { get; set; }
         public DateTime DateCreated { get; set; }
         public string AuthorUserName { get; set; }
         public string AuthorFirstName { get; set; }
@@ -40,8 +41,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
         public int UserLastTopicRead { get; set; }
         public int SubscriptionType { get; set; }
 
-        // Used by GetSubscribedTopics
-        public int SubscribedTopicCount { get; set; } 
+        // Used by GetSubscribedTopics, GetUnreadTopics, etc.
+        public int TopicCount { get; set; }
+        public int UnreadTopicCount { get; set; }
         public string ForumName { get; set; }
     }
 }

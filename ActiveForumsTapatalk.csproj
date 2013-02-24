@@ -59,8 +59,9 @@
       <HintPath>..\..\..\References\AF 5.0.2\DotNetNuke.Modules.ActiveForums.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc">
-      <HintPath>..\..\..\xml-rpc.net\bin\DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</HintPath>
+    <Reference Include="DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\bin\DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</HintPath>
     </Reference>
     <Reference Include="DotNetNuke.Web, Version=7.0.2.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -99,7 +100,7 @@
     <Compile Include="Classes\ActiveForumsTapatalkModuleContext.cs" />
     <Compile Include="Classes\AFTForumController.cs" />
     <Compile Include="Classes\PostIndex.cs" />
-    <Compile Include="Classes\SubscribedForum.cs" />
+    <Compile Include="Classes\ListForum.cs" />
     <Compile Include="Structures\BreadcrumbStructure.cs" />
     <Compile Include="Structures\PostListStructure.cs" />
     <Compile Include="Structures\ForumStructure.cs" />
@@ -107,12 +108,13 @@
     <Compile Include="Classes\ForumTopic.cs" />
     <Compile Include="Classes\ForumPost.cs" />
     <Compile Include="Classes\ForumPostSummary.cs" />
-    <Compile Include="Structures\SubscribedForumStructure.cs" />
-    <Compile Include="Structures\SubscribedTopicStructure.cs" />
+    <Compile Include="Structures\ListForumStructure.cs" />
+    <Compile Include="Structures\ExtendedTopicStructure.cs" />
     <Compile Include="Structures\TopicListStructure.cs" />
     <Compile Include="Classes\ForumTopicSummary.cs" />
     <Compile Include="Classes\Permissions.cs" />
     <Compile Include="Structures\PostStructure.cs" />
+    <Compile Include="Structures\TopicStatusStructure.cs" />
     <Compile Include="Structures\TopicStructure.cs" />
     <Compile Include="Components\FeatureController.cs" />
     <Compile Include="ActiveForumsTapatalkModuleBase.cs">
@@ -148,6 +150,7 @@
     <Content Include="Settings.ascx" />
     <Content Include="Providers\DataProviders\SqlDataProvider\00.00.05.SqlDataProvider" />
     <Content Include="Providers\DataProviders\SqlDataProvider\00.00.01.SqlDataProvider" />
+    <Content Include="Providers\DataProviders\SqlDataProvider\00.00.06.SqlDataProvider" />
     <None Include="Providers\DataProviders\SqlDataProvider\Uninstall.SqlDataProvider" />
     <Content Include="View.ascx" />
   </ItemGroup>

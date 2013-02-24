@@ -3,7 +3,7 @@
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {
     [XmlRpcMissingMapping(MappingAction.Ignore)]
-    public class SubscribedForumStructure
+    public class ListForumStructure
     {
         [XmlRpcMember("forum_id")]
         public string ForumId;

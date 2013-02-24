@@ -13,4 +13,30 @@
     <p>
         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     </p>
+	<p>
+	----
+	</p>
+	<p>
+		XML-RPC.NET - XML-RPC for .NET<br />
+		v2.5.0 Release<br />
+		Copyright (C) 2001-2010 Charles Cook<br>
+		<br />
+		For more information about XML-RPC.NET visit http://www.xml-rpc.net.<br />
+		<br />
+		XML-RPC.NET is licensed with MIT X11 license.<br />
+		(see http://www.xml-rpc.net/faq/xmlrpcnetfaq.html#6.12)<br />
+		<br />
+		For more information about XML-RPC refer to http://www.xmlrpc.com/
+	</p>
+	<p>
+	----
+	</p>
+	<p>
+		Html Agility Pack<br />
+		<br />
+		For more informaton about the Html Agility pack visit http://htmlagilitypack.codeplex.com/<br />
+		<br />
+		Html Agility pack is licensed with Microsoft Public License (Ms-PL)<br />
+		(see http://htmlagilitypack.codeplex.com/license)</br>
+	</p>
 </div>

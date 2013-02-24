@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using DotNetNuke.Data;
 using DotNetNuke.Modules.ActiveForums;
@@ -70,11 +71,19 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
         public Permissions GetForumPermissions(int forumId)
         {
-            Permissions result;
+            var cacheKey = string.Format("aftfp:{0}", forumId);
 
-            using (var ctx = DataContext.Instance())
+            var result = DataCache.CacheRetrieve(cacheKey) as Permissions;
+
+            if(result == null)
             {
-                result = ctx.ExecuteSingleOrDefault<Permissions>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_Permissions", forumId);
+                using (var ctx = DataContext.Instance())
+                {
+                    result = ctx.ExecuteSingleOrDefault<Permissions>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_Permissions", forumId);
+                }
+
+                if (result != null)
+                    DataCache.CacheStore(cacheKey, result, DateTime.Now.AddMinutes(5));
             }
 
             return result;
@@ -273,13 +282,37 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             return result.HasValue ? result.Value : 1; 
         }
 
-        public IEnumerable<SubscribedForum> GetSubscribedForums(int portalId, int moduleId, int userId, string forumIds)
+        public IEnumerable<ListForum> GetSubscribedForums(int portalId, int moduleId, int userId, string forumIds)
         {
-            IEnumerable<SubscribedForum> result;
+            IEnumerable<ListForum> result;
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<SubscribedForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Subscribed", portalId, moduleId, userId, forumIds);
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Subscribed", portalId, moduleId, userId, forumIds);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ListForum> GetParticipatedForums(int portalId, int moduleId, int userId, string forumIds)
+        {
+            IEnumerable<ListForum> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Participated", portalId, moduleId, userId, forumIds);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ListForum> GetForumStatus(int portalId, int moduleId, int userId, string forumIds)
+        {
+            IEnumerable<ListForum> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Status", portalId, moduleId, userId, forumIds);
             }
 
             return result;
@@ -295,6 +328,65 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             }
 
             return result; 
+        }
+
+        public IEnumerable<ForumTopic> GetUnreadTopics(int portalId, int moduleId, int userId, string forumIds, int rowIndex, int maxRows)
+        {
+            IEnumerable<ForumTopic> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Unread", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ForumTopic> GetParticipatedTopics(int portalId, int moduleId, int userId, string forumIds, int participantUserId, int rowIndex, int maxRows)
+        {
+            IEnumerable<ForumTopic> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Participated", portalId, moduleId, userId, forumIds, participantUserId, rowIndex, maxRows);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ForumTopic> GetLatestTopics(int portalId, int moduleId, int userId, string forumIds, int rowIndex, int maxRows)
+        {
+            IEnumerable<ForumTopic> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Latest", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+            }
+
+            return result;
+        }
+
+        public IEnumerable<ForumTopic> GetTopicStatus(int portalId, int moduleId, int userId, string forumIds, string topicIds)
+        {
+            IEnumerable<ForumTopic> result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Status", portalId, moduleId, userId, forumIds, topicIds);
+            }
+
+            return result;
+        }
+
+        public bool MarkTopicsRead(int portalId, int moduleId, int userId, string forumIds, string topicIds)
+        {
+
+            using (var ctx = DataContext.Instance())
+            {
+                ctx.Execute(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_MarkAsRead", portalId, moduleId, userId, forumIds, topicIds);
+            }
+
+            return true;
         }
 
 

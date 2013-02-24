@@ -4,7 +4,7 @@ using ActiveForumsTapatalk.XmlRpc;
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {
     [XmlRpcMissingMapping(MappingAction.Ignore)]
-    public struct SubscribedTopicStructure
+    public struct ExtendedTopicStructure
     {
         [XmlRpcMember("forum_id")]
         public string ForumId;
@@ -17,6 +17,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 
         [XmlRpcMember("topic_title")]
         public byte[] Title;
+
+        [XmlRpcMember("post_author_id")] 
+        public string AuthorId;
 
         [XmlRpcMember("post_author_name")]
         public byte[] AuthorName;
@@ -41,5 +44,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 
         [XmlRpcMember("short_content")]
         public byte[] Summary;
+
+        [XmlRpcMember("is_subscribed")]
+        public bool IsSubscribed;
+
+        [XmlRpcMember("can_subscribe")]
+        public bool CanSubscribe;
     }
 }
