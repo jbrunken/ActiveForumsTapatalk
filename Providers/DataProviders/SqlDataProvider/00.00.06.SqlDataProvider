@@ -454,8 +454,6 @@ END
 
 GO
 
-USE [DNN7]
-GO
 
 
 CREATE PROCEDURE {databaseOwner}[{objectQualifier}activeforumstapatalk_ForumTopics_Latest]

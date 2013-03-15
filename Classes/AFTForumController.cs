@@ -35,8 +35,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 						roles = f.Security.View;
 						break;
 				}
-				var canView = ActiveForums.Permissions.HasPerm(roles, userRoles);
-				if ((canView || (f.Hidden == false && (permissionType == "CanView" || permissionType == "CanRead"))) && f.Active)
+                var hasRequestedPermission = ActiveForums.Permissions.HasPerm(roles, userRoles);
+				if (hasRequestedPermission && f.Active)
 				{
 					forumIds += f.ForumID + ";";
 				}
