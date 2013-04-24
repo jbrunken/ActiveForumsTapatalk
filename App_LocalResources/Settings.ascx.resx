@@ -183,4 +183,25 @@
   <data name="UninstallTapatalkAPIHandler.Text" xml:space="preserve">
     <value>Uninstall Tapatalk API Handler</value>
   </data>
+  <data name="Disabled.Text" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Everyone.Text" xml:space="preserve">
+    <value>Everyone</value>
+  </data>
+  <data name="lblEnableTapatalkDetection.Help" xml:space="preserve">
+    <value>Enables a script that detects if a tapatalk client available for the users device.  If Tapatalk is available for the device, the users is prompted that the forum supports tapatalk and prompts them to download the client.  The prompt only occures once every 90 days per user (unless cookies are cleared).</value>
+  </data>
+  <data name="lblEnableTapatalkDetection.Text" xml:space="preserve">
+    <value>Enable Tapatalk Detection</value>
+  </data>
+  <data name="lblSearchPermission.Help" xml:space="preserve">
+    <value>Which users should be able to run forum searchs through the Tapatalk client.</value>
+  </data>
+  <data name="lblSearchPermission.Text" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="RegisteredUsers.Text" xml:space="preserve">
+    <value>Registered Users</value>
+  </data>
 </root>

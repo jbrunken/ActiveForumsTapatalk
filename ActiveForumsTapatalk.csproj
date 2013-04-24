@@ -54,10 +54,9 @@
       <HintPath>..\..\..\References\DNN 7.0.0\DotNetNuke.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="DotNetNuke.Modules.ActiveForums, Version=5.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="DotNetNuke.Modules.ActiveForums, Version=5.0.4.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\References\AF 5.0.2\DotNetNuke.Modules.ActiveForums.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\References\AF 5.0.4\DotNetNuke.Modules.ActiveForums.dll</HintPath>
     </Reference>
     <Reference Include="DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -101,7 +100,10 @@
     <Compile Include="Classes\AFTForumController.cs" />
     <Compile Include="Classes\PostIndex.cs" />
     <Compile Include="Classes\ListForum.cs" />
+    <Compile Include="Classes\PostSearchResults.cs" />
+    <Compile Include="Classes\TopicSearchResults.cs" />
     <Compile Include="Structures\BreadcrumbStructure.cs" />
+    <Compile Include="Structures\ExtendedPostStructure.cs" />
     <Compile Include="Structures\PostListStructure.cs" />
     <Compile Include="Structures\ForumStructure.cs" />
     <Compile Include="Classes\ForumSubscription.cs" />
@@ -152,6 +154,7 @@
     <Content Include="Providers\DataProviders\SqlDataProvider\00.00.01.SqlDataProvider" />
     <Content Include="Providers\DataProviders\SqlDataProvider\00.00.06.SqlDataProvider" />
     <None Include="Providers\DataProviders\SqlDataProvider\Uninstall.SqlDataProvider" />
+    <Content Include="tapatalkdetect.js" />
     <Content Include="View.ascx" />
   </ItemGroup>
   <ItemGroup>

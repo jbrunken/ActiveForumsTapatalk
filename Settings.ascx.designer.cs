@@ -76,6 +76,42 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk {
         protected global::System.Web.UI.WebControls.CheckBox ckAllowAnonymous;
         
         /// <summary>
+        /// lblSearchPermission control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::DotNetNuke.UI.UserControls.LabelControl lblSearchPermission;
+        
+        /// <summary>
+        /// ddlSearchPermission control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ddlSearchPermission;
+        
+        /// <summary>
+        /// lblEnableTapatalkDetection control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::DotNetNuke.UI.UserControls.LabelControl lblEnableTapatalkDetection;
+        
+        /// <summary>
+        /// ckEnableTapatalkDetection control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox ckEnableTapatalkDetection;
+        
+        /// <summary>
         /// lblRegistrationPage control.
         /// </summary>
         /// <remarks>

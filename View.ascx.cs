@@ -26,8 +26,18 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
         {
             tapatalkConfigWarning.Visible = false;
 
+            var settings = ActiveForumsTapatalkModuleSettings.Create(Settings);
+
             if (Globals.IsEditMode())
-                CheckConfig();
+                CheckConfig(settings);
+
+            const string tapatalkDetectionKey = "TapatalkDetection";
+
+            if (!Globals.IsEditMode() && settings.IsTapatalkDetectionEnabled && !Page.ClientScript.IsClientScriptIncludeRegistered(tapatalkDetectionKey))
+            {
+                Framework.jQuery.RequestRegistration(); 
+                Page.ClientScript.RegisterClientScriptInclude(tapatalkDetectionKey, Page.ResolveUrl("~/DesktopModules/ActiveForumsTapatalk/tapatalkdetect.js"));
+            }
         }
 
 
@@ -47,14 +57,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
             }
         }
 
-        private void CheckConfig()
+        private void CheckConfig(ActiveForumsTapatalkModuleSettings settings)
         {
-            var settings = ActiveForumsTapatalkModuleSettings.Create(Settings);
-            if(settings.ForumModuleId < 0 || settings.ForumTabId < 0)
-            {
-                tapatalkConfigWarning.Visible = true;
-                tapatalkConfigWarning.InnerText = LocalizeString("ConfigWarning");
-            }
+            if (settings.ForumModuleId >= 0 && settings.ForumTabId >= 0) 
+                return;
+
+            tapatalkConfigWarning.Visible = true;
+            tapatalkConfigWarning.InnerText = LocalizeString("ConfigWarning");
         }
     }
 }

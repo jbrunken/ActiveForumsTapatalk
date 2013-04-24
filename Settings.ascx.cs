@@ -39,6 +39,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
                     ddlAFInstance.Items.Clear();
                     ddlAFInstance.ClearSelection();
 
+                    ckEnableTapatalkDetection.Checked = settings.IsTapatalkDetectionEnabled;
+
+                    ddlSearchPermission.ClearSelection();
+                    var searchPermissionItem = ddlSearchPermission.Items.FindByValue(((int) settings.SearchPermission).ToString());
+                    if (searchPermissionItem != null)
+                        searchPermissionItem.Selected = true;
+
                     var mc = new ModuleController();
                     var tc = new TabController();
 
@@ -116,6 +123,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk
                 settings.ForumModuleId = forumModuleId;
                 settings.AllowAnonymous = ckAllowAnonymous.Checked;
                 settings.RegistrationUrl = txtRegistrationPage.Text.Trim();
+                settings.SearchPermission = (ActiveForumsTapatalkModuleSettings.SearchPermissions) int.Parse(ddlSearchPermission.SelectedValue);
+                settings.IsTapatalkDetectionEnabled = ckEnableTapatalkDetection.Checked;
 
                 settings.Save(mc, ModuleId);
             }

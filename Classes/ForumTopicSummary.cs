@@ -1,4 +1,6 @@
 ﻿
+using System.Collections.Generic;
+
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 {
     public class ForumTopicSummary

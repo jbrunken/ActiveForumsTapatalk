@@ -43,7 +43,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"api_level", "4"},
                 {"guest_okay", aftContext.ModuleSettings.AllowAnonymous},
                 {"disable_bbcode", "0"},
-                {"min_search_length", "4"},
+                {"min_search_length", "3"},
                 {"reg_url", "register.aspx"},
                 {"charset", "UTF-8"},
                 {"subscribe_forum", "1"},
@@ -65,6 +65,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"get_topic_status", "1"},
                 {"get_participated_forum", "1"},
                 {"get_forum", "1"},
+                {"guest_search", aftContext.ModuleSettings.SearchPermission == ActiveForumsTapatalkModuleSettings.SearchPermissions.Everyone ? "1" : "0"},
+                {"advanced_search", "0"},
+                {"searchid", "1"},
                 /* Not Yet Implemented */
                 {"can_unread", "0"},
                 {"conversation", "0"},
@@ -81,11 +84,10 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"pm_load", "0"},              
                 {"mass_subscribe", "0"},
                 {"emoji", "0"},
-                {"searchid", "0"},
                 {"get_smiles", "0"},
                 {"get_online_users", "0"},
                 {"mark_pm_unread", "0"},
-                {"advanced_search", "0"},
+                
                 {"get_alert", "0"},
                 {"advanced_delete", "0"},
                 {"default_smiles", "0"}
@@ -667,7 +669,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
                     // Add Journal entry
                     var forumTabId = aftContext.ModuleSettings.ForumTabId;
-                    var fullURL = fc.BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
                     new Social().AddTopicToJournal(portalId, forumModuleId, forumId, topicId, ti.Author.AuthorId, fullURL, ti.Content.Subject, string.Empty, ti.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
@@ -1380,7 +1382,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     // Add Journal entry
                     var forumTabId = aftContext.ModuleSettings.ForumTabId;
                     var ti = new TopicsController().Topics_Get(portalId, forumModuleId, topicId, forumId, -1, false);
-                    var fullURL = fc.BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
                     new Social().AddReplyToJournal(portalId, forumModuleId, forumId, topicId, ri.ReplyId, ri.Author.AuthorId, fullURL, ri.Content.Subject, string.Empty, ri.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
@@ -1756,6 +1758,143 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
         #endregion
 
+        #region Search API
+        
+        [XmlRpcMethod("search_topic")]
+        public XmlRpcStruct SearchTopics(params object[] parameters)
+        {
+            if(parameters.Length == 0)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
+
+            var searchString = Encoding.UTF8.GetString((byte[])parameters[0]);
+            var startIndex = parameters.Length >= 3 ? Convert.ToInt32(parameters[1]) : 0;
+            var endIndex = parameters.Length >= 3 ? Convert.ToInt32(parameters[2]) : 20;
+            var searchId = parameters.Length >= 4 ? Convert.ToString(parameters[3]) : null;
+
+            return SearchTopics(searchString, startIndex, endIndex, searchId);
+        }
+
+        private XmlRpcStruct SearchTopics(string searchString, int startIndex, int endIndex, string searchId)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Verify Search Permissions
+            var searchPermissions = aftContext.ModuleSettings.SearchPermission;
+            if(searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.Disabled || (userId <= 0 && searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.RegisteredUsers ))
+                throw new XmlRpcFaultException(102, "Insufficent Search Permissions");
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var maxRows = endIndex + 1 - startIndex;
+
+            var searchResults = fc.SearchTopics(portalId, forumModuleId, userId, forumIds, searchString, startIndex, maxRows, searchId, mainSettings);
+
+            if (searchResults == null)
+                throw new XmlRpcFaultException(101, "Search Error");
+
+            return new XmlRpcStruct
+            {
+                {"total_topic_num", searchResults.TotalTopics },
+                {"search_id", searchResults.SearchId.ToString() },
+                {"topics", searchResults.Topics.Select(t => new ExtendedTopicStructure { 
+                                        TopicId = t.TopicId.ToString(),
+                                        AuthorAvatarUrl = GetAvatarUrl(t.LastReplyAuthorId),
+                                        AuthorId = t.LastReplyAuthorId.ToString(),
+                                        AuthorName = GetLastReplyAuthorName(mainSettings, t).ToBytes(),
+                                        ForumId = t.ForumId.ToString(),
+                                        ForumName = t.ForumName.ToBytes(),
+                                        HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                        IsLocked = t.IsLocked,
+                                        IsSubscribed = t.SubscriptionType > 0,
+                                        CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fc.GetForumPermissions(t.ForumId).CanSubscribe), // GetforumPermissions uses cache so it shouldn't be a performance issue
+                                        ReplyCount = t.ReplyCount,
+                                        Summary = GetSummary(null, t.LastReplyBody).ToBytes(),
+                                        ViewCount = t.ViewCount,
+                                        DateCreated = t.LastReplyDate,
+                                        Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
+                                    }).ToArray()}
+            };  
+        }
+
+        [XmlRpcMethod("search_post")]
+        public XmlRpcStruct SearchPosts(params object[] parameters)
+        {
+            if (parameters.Length == 0)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
+
+            var searchString = Encoding.UTF8.GetString((byte[])parameters[0]);
+            var startIndex = parameters.Length >= 3 ? Convert.ToInt32(parameters[1]) : 0;
+            var endIndex = parameters.Length >= 3 ? Convert.ToInt32(parameters[2]) : 20;
+            var searchId = parameters.Length >= 4 ? Convert.ToString(parameters[3]) : null;
+
+            return SearchPosts(searchString, startIndex, endIndex, searchId);
+        }
+
+        private XmlRpcStruct SearchPosts(string searchString, int startIndex, int endIndex, string searchId)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            var portalId = aftContext.Module.PortalID;
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var userId = aftContext.UserId;
+
+            // Verify Search Permissions
+            var searchPermissions = aftContext.ModuleSettings.SearchPermission;
+            if (searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.Disabled || (userId <= 0 && searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.RegisteredUsers))
+                throw new XmlRpcFaultException(102, "Insufficent Search Permissions");
+
+            // Build a list of forums the user has access to
+            var fc = new AFTForumController();
+            var forumIds = fc.GetForumsForUser(aftContext.ForumUser.UserRoles, portalId, forumModuleId, "CanRead");
+
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            var maxRows = endIndex + 1 - startIndex;
+
+            var searchResults = fc.SearchPosts(portalId, forumModuleId, userId, forumIds, searchString, startIndex, maxRows, searchId, mainSettings);
+
+            if (searchResults == null)
+                throw new XmlRpcFaultException(101, "Search Error");
+
+            return new XmlRpcStruct
+            {
+                {"total_post_num", searchResults.TotalPosts },
+                {"search_id", searchResults.SearchId.ToString() },
+                {"posts", searchResults.Topics.Select(t => new ExtendedPostStructure { 
+                                        TopicId = t.TopicId.ToString(),
+                                        AuthorAvatarUrl = GetAvatarUrl(t.AuthorId),
+                                        AuthorId = t.AuthorId.ToString(),
+                                        AuthorName = GetAuthorName(mainSettings, t).ToBytes(),
+                                        ForumId = t.ForumId.ToString(),
+                                        ForumName = t.ForumName.ToBytes(),
+                                        PostID = t.ContentId.ToString(),
+                                        Summary = GetSummary(null, t.Body).ToBytes(),
+                                        PostDate = t.DateCreated,
+                                        TopicTitle = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes(),
+                                        PostTitle = HttpUtility.HtmlDecode(t.PostSubject + string.Empty).ToBytes()
+                                    }).ToArray()}
+            };
+        }
+
+        #endregion
 
         #region Private Helper Methods
 

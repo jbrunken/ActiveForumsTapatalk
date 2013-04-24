@@ -17,6 +17,18 @@
         <asp:CheckBox runat="server" ID="ckAllowAnonymous" />
     </div>
     <div class="dnnFormItem">
+        <dnn:Label ID="lblSearchPermission" runat="server" Suffix=":"  /> 
+        <asp:DropDownList ID="ddlSearchPermission" runat="server">
+            <asp:ListItem resourcekey="Disabled" Value="0" />
+            <asp:ListItem resourcekey="Everyone" Value="1" />
+            <asp:ListItem resourcekey="RegisteredUsers" Value="2" />
+        </asp:DropDownList>
+    </div>
+    <div class="dnnFormItem">
+        <dnn:label ID="lblEnableTapatalkDetection" runat="server" Suffix=":"  />
+        <asp:CheckBox runat="server" ID="ckEnableTapatalkDetection" />
+    </div>
+    <div class="dnnFormItem">
         <dnn:label ID="lblRegistrationPage" runat="server" Suffix=":"  />
         <asp:TextBox runat="server" ID="txtRegistrationPage"></asp:TextBox>
     </div>

@@ -11,18 +11,24 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
         private const string ForumModuleIdKey = "ForumModuleId";
         private const string ForumTabIdKey = "ForumTabId";
         private const string RegistrationUrlKey = "RegistrationUrl";
+        private const string SearchPermissionKey = "SearchPermission";
+        private const string IsTapatalkDetectionEnabledKey = "IsTapatalkDetectionEnabled";
 
         private const bool IsOpenDefault = false;
         private const bool AllowAnonymousDefault = true;
         private const int ForumModuleIdDefault = -1;
         private const int ForumTabIdDefault = -1;
         private const string RegistrationUrlDefault = "register.aspx";
+        private const SearchPermissions SearchPermissionDefault = SearchPermissions.Everyone;
+        private const bool IsTapatalkDetectionEnabledDefault = true;
 
         public bool IsOpen { get; set; }
         public bool AllowAnonymous { get; set; }
         public int ForumModuleId { get; set; }
         public int ForumTabId { get; set; }
         public string RegistrationUrl { get; set; }
+        public SearchPermissions SearchPermission { get; set; }
+        public bool IsTapatalkDetectionEnabled { get; set; }
 
         public bool Save(ModuleController moduleController, int moduleId)
         {
@@ -36,6 +42,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
                 moduleController.UpdateModuleSetting(moduleId, ForumModuleIdKey, ForumModuleId.ToString());
                 moduleController.UpdateModuleSetting(moduleId, ForumTabIdKey, ForumTabId.ToString());
                 moduleController.UpdateModuleSetting(moduleId, RegistrationUrlKey, RegistrationUrl);
+                moduleController.UpdateModuleSetting(moduleId, SearchPermissionKey, ((int)SearchPermission).ToString());
+                moduleController.UpdateModuleSetting(moduleId, IsTapatalkDetectionEnabledKey, IsTapatalkDetectionEnabled.ToString());
 
                 return true;
             }
@@ -53,7 +61,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
                                 AllowAnonymous = ReadBool(moduleSettings, AllowAnonymousKey, AllowAnonymousDefault), 
                                 ForumModuleId = ReadInt(moduleSettings, ForumModuleIdKey, ForumModuleIdDefault),
                                 ForumTabId = ReadInt(moduleSettings, ForumTabIdKey, ForumTabIdDefault),
-                                RegistrationUrl = ReadString(moduleSettings, RegistrationUrlKey, RegistrationUrlDefault)
+                                RegistrationUrl = ReadString(moduleSettings, RegistrationUrlKey, RegistrationUrlDefault),
+                                SearchPermission = (SearchPermissions)ReadInt(moduleSettings, SearchPermissionKey, (int)SearchPermissionDefault),
+                                IsTapatalkDetectionEnabled = ReadBool(moduleSettings, IsTapatalkDetectionEnabledKey, IsTapatalkDetectionEnabledDefault)
                              };
 
             return result;
@@ -99,5 +109,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             return value ?? defaultValue;
         }
 
+        public enum SearchPermissions
+        {
+            Disabled = 0,
+            Everyone = 1,
+            RegisteredUsers = 2
+        }
     }
 }

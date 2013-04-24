@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using DotNetNuke.Data;
 using DotNetNuke.Modules.ActiveForums;
-using DotNetNuke.Modules.ActiveForumsTapatalk.Structures;
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 {
@@ -161,103 +160,6 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             return result;
         }
 
-        public string BuildUrl(int tabId, int moduleId, string groupPrefix, string forumPrefix, int forumGroupId, int forumID, int topicId, string topicURL, int tagId, int categoryId, string otherPrefix, int pageId, int socialGroupId)
-        {
-            var mainSettings = DataCache.MainSettings(moduleId);
-            string[] @params = { };
-            if (!mainSettings.URLRewriteEnabled || (((string.IsNullOrEmpty(forumPrefix) && forumID > 0 && string.IsNullOrEmpty(groupPrefix)) | (string.IsNullOrEmpty(forumPrefix) && string.IsNullOrEmpty(groupPrefix) && forumGroupId > 0)) && string.IsNullOrEmpty(otherPrefix)))
-            {
-                if (forumID > 0 && topicId == -1)
-                {
-                    @params = Utilities.AddParams(ParamKeys.ForumId + "=" + forumID.ToString(), @params);
-                }
-                else if (forumGroupId > 0 && topicId == -1)
-                {
-                    @params = Utilities.AddParams(ParamKeys.GroupId + "=" + forumGroupId.ToString(), @params);
-                }
-                else if (tagId > 0)
-                {
-                    //afv=grid&afgt=tags&aftg=
-                    @params = Utilities.AddParams("afv=grid", @params);
-                    @params = Utilities.AddParams("afgt=tags", @params);
-                    @params = Utilities.AddParams("aftg=" + tagId.ToString(), @params);
-
-
-                }
-                else if (categoryId > 0)
-                {
-                    @params = Utilities.AddParams("act=" + categoryId.ToString(), @params);
-                }
-                else if (!(string.IsNullOrEmpty(otherPrefix)))
-                {
-                    @params = Utilities.AddParams("afv=grid", @params);
-                    @params = Utilities.AddParams("afgt=" + otherPrefix, @params);
-                }
-                else if (topicId > 0)
-                {
-                    @params = Utilities.AddParams(ParamKeys.TopicId + "=" + topicId.ToString(), @params);
-                }
-                if (pageId > 1)
-                {
-                    @params = Utilities.AddParams(ParamKeys.PageId + "=" + pageId, @params);
-                }
-                if (socialGroupId > 0)
-                {
-                    @params = Utilities.AddParams("GroupId=" + socialGroupId, @params);
-                }
-                return Utilities.NavigateUrl(tabId, "", @params);
-            }
-            else
-            {
-                string sURL = string.Empty;
-                if (!(string.IsNullOrEmpty(mainSettings.PrefixURLBase)))
-                {
-                    sURL += "/" + mainSettings.PrefixURLBase;
-                }
-                if (!(string.IsNullOrEmpty(groupPrefix)))
-                {
-                    sURL += "/" + groupPrefix;
-                }
-                if (!(string.IsNullOrEmpty(forumPrefix)))
-                {
-                    sURL += "/" + forumPrefix;
-                }
-                if (!(string.IsNullOrEmpty(topicURL)))
-                {
-                    sURL += "/" + topicURL;
-                }
-                if (tagId > 0)
-                {
-                    sURL += "/" + mainSettings.PrefixURLTag + "/" + otherPrefix;
-                }
-                else if (categoryId > 0)
-                {
-                    sURL += "/" + mainSettings.PrefixURLCategory + "/" + otherPrefix;
-                }
-                else if (!(string.IsNullOrEmpty(otherPrefix)) && (tagId == -1 || categoryId == -1))
-                {
-                    sURL += "/" + mainSettings.PrefixURLOther + "/" + otherPrefix;
-                }
-                if (topicId > 0 && string.IsNullOrEmpty(topicURL))
-                {
-                    return Utilities.NavigateUrl(tabId, "", ParamKeys.TopicId + "=" + topicId.ToString());
-                }
-                if (pageId > 1)
-                {
-                    if (string.IsNullOrEmpty(sURL))
-                    {
-                        return Utilities.NavigateUrl(tabId, "", ParamKeys.PageId + "=" + pageId);
-                    }
-                    sURL += "/" + pageId.ToString();
-                }
-                if (string.IsNullOrEmpty(sURL))
-                {
-                    return Utilities.NavigateUrl(tabId);
-                }
-                return sURL + "/";
-            }
-        }
-
         public PostIndex GetForumPostIndex(int contentId)
         {
             PostIndex result;
@@ -388,6 +290,123 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             return true;
         }
+
+        public TopicSearchResults SearchTopics(int portalId, int moduleId, int userId, string forumIds, string searchText, int rowIndex, int maxRows, string searchId, SettingsInfo mainSettings)
+        {
+            int searchIdValue;
+            int.TryParse(searchId, out searchIdValue);
+
+            var result = new TopicSearchResults();
+
+            if (!string.IsNullOrWhiteSpace(forumIds))
+                forumIds = forumIds.Replace(';', ':');
+
+            var ds = ActiveForums.DataProvider.Instance().Search(portalId, moduleId, userId, searchIdValue, rowIndex, maxRows, searchText, 0, 0, 0, 0, null, forumIds, null, 0, 0, 1, mainSettings.FullText);
+
+            if(ds.Tables.Count > 2)
+                return null;
+
+            var dtSummary = ds.Tables[0];
+            var dtResults = ds.Tables[1];
+
+            result.SearchId = dtSummary.Rows[0].GetInt("SearchId");
+            result.TotalTopics = dtSummary.Rows[0].GetInt("TotalRecords");
+            result.Topics = new List<ForumTopic>(dtResults.Rows.Count);
+
+            foreach(var row in dtResults.AsEnumerable())
+            {
+                ((List<ForumTopic>)result.Topics).Add(new ForumTopic
+                                                          {
+                                                            ForumId = row.GetInt("ForumId"),
+                                                            ForumName = row.GetString("ForumName"),
+                                                            LastReplyId = row.GetInt("LastReplyId"),
+                                                            TopicId = row.GetInt("TopicId"),
+                                                            ViewCount = row.GetInt("ViewCount"),
+                                                            ReplyCount = row.GetInt("ReplyCount"),
+                                                            IsLocked = row.GetBoolean("IsLocked"),
+                                                            IsPinned = row.GetBoolean("IsPinned"),
+                                                            TopicIcon = row.GetString("TopicIcon"),
+                                                            StatusId = row.GetInt("StatusId"),
+                                                            AnnounceStart = row.GetDateTime("AnnounceStart"),
+                                                            AnnounceEnd = row.GetDateTime("AnnounceEnd"),
+                                                            TopicType = row.GetString("TopicType"),
+                                                            Subject = row.GetString("Subject"),
+                                                            Summary = row.GetString("Summary"),
+                                                            AuthorId = row.GetInt("AuthorId"),
+                                                            AuthorName = row.GetString("AuthorName"),
+                                                            Body = row.GetString("Body"),
+                                                            LastReplyBody = row.GetString("LastReplyBody"),
+                                                            DateCreated = row.GetDateTime("DateCreated"),
+                                                            AuthorUserName = row.GetString("AuthorUserName"),
+                                                            AuthorFirstName = row.GetString("AuthorFirstName"),
+                                                            AuthorLastName = row.GetString("AuthorLastName"),
+                                                            AuthorDisplayName = row.GetString("AuthorDisplayName"),
+                                                            LastReplySubject = row.GetString("LastReplySubject"),
+                                                            LastReplySummary = row.GetString("LastReplySummary"),
+                                                            LastReplyAuthorId = row.GetInt("LastReplyAuthorId"),
+                                                            LastReplyAuthorName = row.GetString("LastReplyAuthorName"),
+                                                            LastReplyUserName = row.GetString("LastReplyUserName"),
+                                                            LastReplyFirstName = row.GetString("LastReplyFirstName"),
+                                                            LastReplyLastName = row.GetString("LastReplyLastName"),
+                                                            LastReplyDisplayName = row.GetString("LastReplyDisplayName"),
+                                                            LastReplyDate = row.GetDateTime("LastReplyDate"),
+                                                            UserLastReplyRead = row.GetInt("UserLastReplyRead"),
+                                                            UserLastTopicRead = row.GetInt("UserLastTopicRead"),
+                                                            SubscriptionType = row.GetInt("SubscriptionType")
+                                                          });
+            }
+
+            return result;
+        }
+
+        public PostSearchResults SearchPosts(int portalId, int moduleId, int userId, string forumIds, string searchText, int rowIndex, int maxRows, string searchId, SettingsInfo mainSettings)
+        {
+            int searchIdValue;
+            int.TryParse(searchId, out searchIdValue);
+
+            var result = new PostSearchResults();
+
+            if (!string.IsNullOrWhiteSpace(forumIds))
+                forumIds = forumIds.Replace(';', ':');
+
+            var ds = ActiveForums.DataProvider.Instance().Search(portalId, moduleId, userId, searchIdValue, rowIndex, maxRows, searchText, 0, 0, 0, 0, null, forumIds, null, 1, 0, 1, mainSettings.FullText);
+
+            if (ds.Tables.Count > 2)
+                return null;
+
+            var dtSummary = ds.Tables[0];
+            var dtResults = ds.Tables[1];
+
+            result.SearchId = dtSummary.Rows[0].GetInt("SearchId");
+            result.TotalPosts = dtSummary.Rows[0].GetInt("TotalRecords");
+            result.Topics = new List<ForumPost>(dtResults.Rows.Count);
+
+            foreach (var row in dtResults.AsEnumerable())
+            {
+                ((List<ForumPost>)result.Topics).Add(new ForumPost
+                {
+                    ForumId = row.GetInt("ForumId"),
+                    ForumName = row.GetString("ForumName"),
+                    TopicId = row.GetInt("TopicId"),
+                    ReplyId = row.GetInt("ReplyId"),
+                    ContentId = row.GetInt("ContentId"),
+                    Subject = row.GetString("Subject"),
+                    PostSubject = row.GetString("PostSubject"),
+                    Summary = row.GetString("Summary"),
+                    AuthorId = row.GetInt("AuthorId"),
+                    AuthorName = row.GetString("AuthorName"),
+                    UserName = row.GetString("AuthorUserName"),
+                    FirstName = row.GetString("AuthorFirstName"),
+                    LastName = row.GetString("AuthorLastName"),
+                    DisplayName = row.GetString("AuthorDisplayName"),
+                    Body = row.GetString("Body"),
+                    DateCreated = row.GetDateTime("DateCreated"),
+                    DateUpdated = row.GetDateTime("DateCreated")
+                });
+            }
+
+            return result;
+        } 
 
 
         //DotNetNuke.Services.Social.Messaging.Internal.InternalMessagingController.Instance.GetInbox()
