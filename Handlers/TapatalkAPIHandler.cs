@@ -1105,6 +1105,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                           PostID = p.ContentId.ToString(),
                                           AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
                                           AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
+                                          AuthorId = p.AuthorId.ToString(),
                                           Body =  HtmlToTapatalk(p.Body, returnHtml).ToBytes(),
                                           CanEdit = false, // TODO: Fix this
                                           IsOnline = p.IsUserOnline,
@@ -1567,6 +1568,83 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
 
             Context.Response.SetCookie(authCookie);
+        }
+
+        [XmlRpcMethod("get_user_info")]
+        public XmlRpcStruct GetUser(params object[] parameters)
+        {
+            if (parameters.Length < 1)
+                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+
+            var username = Encoding.UTF8.GetString((byte[])parameters[0]);
+            var userIdStr = parameters.Length >= 2 ? Convert.ToString(parameters[1]) : null;
+
+            var userId = Utilities.SafeConvertInt(userIdStr);
+
+            return GetUser(username, userId);
+        }
+
+        private XmlRpcStruct GetUser(string username, int userId)
+        {
+            var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
+
+            if (aftContext == null || aftContext.Module == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
+
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
+
+            // for our purposes, we ignore the username and require userId
+            // If we don't have a userid, pass back a anonymous user object
+            if(userId <= 0)
+            {
+                return new XmlRpcStruct
+                           {
+                               { "user_id", userId.ToString() },
+                               { "user_name", username.ToBytes() },
+                               { "post_count", 1 }
+                           };
+            }
+
+            var portalId = aftContext.Module.PortalID;
+            var currentUserId = aftContext.UserId;
+
+            var fc = new AFTForumController();
+
+            var user = fc.GetUser(portalId, userId, currentUserId);
+
+            const bool allowPM = false; //TODO : Tie in with PM's
+            const bool acceptFollow = false;
+
+            if(user == null)
+            {
+                return new XmlRpcStruct
+                           {
+                               { "user_id", userId.ToString() },
+                               { "user_name", username.ToBytes() },
+                               { "post_count", 1 }
+                           }; 
+            }
+
+            var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
+
+            return new XmlRpcStruct
+                           {
+                               { "user_id", userId.ToString() },
+                               { "user_name", GetUserName(mainSettings, user).ToBytes() },
+                               { "post_count", user.PostCount },
+                               { "reg_time", user.DateCreated },
+                               { "last_activity_date", user.DateLastActivity },
+                               { "is_online", user.IsUserOnline },
+                               { "accept_pm", allowPM },
+                               { "i_follow_u", user.Following },
+                               { "u_follow_me", user.IsFollower },
+                               { "accept_follow", acceptFollow },
+                               { "following_count", user.FollowingCount },
+                               { "follower", user.FollowerCount },
+                               { "display_text", user.UserCaption.ToBytes() },
+                               { "icon_url", GetAvatarUrl(userId) }, 
+                           };
         }
 
         #endregion
@@ -2126,7 +2204,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             ProcessNodes(output, node.ChildNodes, mode, returnHtml);
         }
 
-        private static string GetAuthorName(SettingsInfo settings, UserInfo user)
+        private static string GetAuthorName(SettingsInfo settings, Entities.Users.UserInfo user)
         {
             if (user == null || user.UserID <= 0)
                 return "Guest";
@@ -2206,6 +2284,27 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     return post.LastName.Trim();
                 default:
                     return post.DisplayName.Trim();
+            }
+
+        }
+
+        private static string GetUserName(SettingsInfo settings, Classes.UserInfo userInfo)
+        {
+            if (userInfo == null || userInfo.UserId <= 0)
+                return "Guest";
+
+            switch (settings.UserNameDisplay.ToUpperInvariant())
+            {
+                case "USERNAME":
+                    return userInfo.UserName.Trim();
+                case "FULLNAME":
+                    return (userInfo.FirstName.Trim() + " " + userInfo.LastName.Trim());
+                case "FIRSTNAME":
+                    return userInfo.FirstName.Trim();
+                case "LASTNAME":
+                    return userInfo.LastName.Trim();
+                default:
+                    return userInfo.DisplayName.Trim();
             }
 
         }

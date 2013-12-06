@@ -406,8 +406,19 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             }
 
             return result;
-        } 
+        }
 
+        public UserInfo GetUser(int portalId, int userId, int currentUserId)
+        {
+            UserInfo result;
+
+            using (var ctx = DataContext.Instance())
+            {
+                result = ctx.ExecuteSingleOrDefault<UserInfo>(CommandType.StoredProcedure, "activeforumstapatalk_Users_Get", portalId, userId, currentUserId);
+            }
+
+            return result;
+        }
 
         //DotNetNuke.Services.Social.Messaging.Internal.InternalMessagingController.Instance.GetInbox()
 

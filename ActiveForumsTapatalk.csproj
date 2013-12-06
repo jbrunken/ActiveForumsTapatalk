@@ -102,6 +102,7 @@
     <Compile Include="Classes\ListForum.cs" />
     <Compile Include="Classes\PostSearchResults.cs" />
     <Compile Include="Classes\TopicSearchResults.cs" />
+    <Compile Include="Classes\UserInfo.cs" />
     <Compile Include="Structures\BreadcrumbStructure.cs" />
     <Compile Include="Structures\ExtendedPostStructure.cs" />
     <Compile Include="Structures\PostListStructure.cs" />

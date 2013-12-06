@@ -18,6 +18,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
         [XmlRpcMember("post_author_name")] 
         public byte[] AuthorName;
 
+        [XmlRpcMember("post_author_id")]
+        public string AuthorId;
+
         [XmlRpcMember("is_online")] 
         public bool IsOnline;
 
