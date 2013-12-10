@@ -1,6 +1,6 @@
 <dotnetnuke type="Package" version="5.0">
   <packages>
-    <package name="ActiveForumsTapatalk" type="Module" version="00.00.08">
+    <package name="ActiveForumsTapatalk" type="Module" version="01.00.00">
       <friendlyName>Active Forums Tapatalk</friendlyName>
       <description>Adds Tapatalk support to Active Forums 5.0.4+ for DNN 7.0+</description>
       <iconFile>~/DesktopModules/ActiveForumsTapatalk/Images/activeforumstapatalk_32x32.png</iconFile>
@@ -17,41 +17,6 @@
       </dependencies>
       
       <components>
-        <component type="Script">
-          <scripts>
-            <basePath>DesktopModules\ActiveForumsTapatalk</basePath>
-            <script type="Install">
-              <path>Providers\DataProviders\SqlDataProvider</path>
-              <name>00.00.01.SqlDataProvider</name>
-              <version>00.00.01</version>
-            </script>
-            <script type="Install">
-              <path>Providers\DataProviders\SqlDataProvider</path>
-              <name>00.00.05.SqlDataProvider</name>
-              <version>00.00.05</version>
-            </script>
-            <script type="Install">
-              <path>Providers\DataProviders\SqlDataProvider</path>
-              <name>00.00.06.SqlDataProvider</name>
-              <version>00.00.06</version>
-            </script>
-            <script type="UnInstall">
-              <path>Providers\DataProviders\SqlDataProvider</path>
-              <name>Uninstall.SqlDataProvider</name>
-              <version>00.00.06</version>
-            </script>
-          </scripts>
-        </component>
-
-        <component type="ResourceFile">
-          <resourceFiles>
-            <basePath>DesktopModules/ActiveForumsTapatalk</basePath>
-            <resourceFile>
-              <name>Resources.zip</name>
-            </resourceFile>
-          </resourceFiles>
-        </component>
-
         <component type="Module">
           <desktopModule>
             <moduleName>ActiveForumsTapatalk</moduleName>
@@ -88,13 +53,46 @@
             </moduleDefinitions>
           </desktopModule>
         </component>
+
+        <component type="Script">
+          <scripts>
+            <basePath>DesktopModules\ActiveForumsTapatalk</basePath>
+            <script type="Install">
+              <path>Providers\DataProviders\SqlDataProvider</path>
+              <name>00.00.01.SqlDataProvider</name>
+              <version>00.00.01</version>
+            </script>
+            <script type="Install">
+              <path>Providers\DataProviders\SqlDataProvider</path>
+              <name>00.00.05.SqlDataProvider</name>
+              <version>00.00.05</version>
+            </script>
+            <script type="Install">
+              <path>Providers\DataProviders\SqlDataProvider</path>
+              <name>00.00.06.SqlDataProvider</name>
+              <version>00.00.06</version>
+            </script>
+            <script type="UnInstall">
+              <path>Providers\DataProviders\SqlDataProvider</path>
+              <name>Uninstall.SqlDataProvider</name>
+              <version>00.00.06</version>
+            </script>
+          </scripts>
+        </component>
+
+        <component type="ResourceFile">
+          <resourceFiles>
+            <basePath>DesktopModules/ActiveForumsTapatalk</basePath>
+            <resourceFile>
+              <name>Resources.zip</name>
+            </resourceFile>
+          </resourceFiles>
+        </component>
+
         <component type="Assembly">
           <assemblies>
-            <basePath>bin</basePath>
             <assembly>
               <name>DotNetNuke.Modules.ActiveForumsTapatalk.dll</name>
-              <sourceFileName>DotNetNuke.Modules.ActiveForumsTapatalk.dll</sourceFileName>
-              <version>00.00.08</version>
             </assembly>
             <assembly>
               <name>DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</name>
