@@ -1,6 +1,6 @@
 <dotnetnuke type="Package" version="5.0">
   <packages>
-    <package name="ActiveForumsTapatalk" type="Module" version="00.00.07">
+    <package name="ActiveForumsTapatalk" type="Module" version="00.00.08">
       <friendlyName>Active Forums Tapatalk</friendlyName>
       <description>Adds Tapatalk support to Active Forums 5.0.4+ for DNN 7.0+</description>
       <iconFile>~/DesktopModules/ActiveForumsTapatalk/Images/activeforumstapatalk_32x32.png</iconFile>
@@ -93,6 +93,8 @@
             <basePath>bin</basePath>
             <assembly>
               <name>DotNetNuke.Modules.ActiveForumsTapatalk.dll</name>
+              <sourceFileName>DotNetNuke.Modules.ActiveForumsTapatalk.dll</sourceFileName>
+              <version>00.00.08</version>
             </assembly>
             <assembly>
               <name>DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc.dll</name>

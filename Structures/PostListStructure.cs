@@ -2,7 +2,7 @@
 
 namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 {
-    public struct PostListStructure
+    public class PostListStructure
     {
         [XmlRpcMember("total_post_num")] 
         public int PostCount;
@@ -36,8 +36,32 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Structures
 
         [XmlRpcMember("breadcrumb")]
         public BreadcrumbStructure[] Breadcrumbs;
+    }
+
+    public class PostListPlusPositionStructure : PostListStructure
+    {
+        public PostListPlusPositionStructure()
+        {
+            
+        }
+
+        public PostListPlusPositionStructure(PostListStructure postList, int position)
+        {
+            PostCount = postList.PostCount;
+            ForumId = postList.ForumId;
+            ForumName = postList.ForumName;
+            TopicId = postList.TopicId;
+            Subject = postList.Subject;
+            IsSubscribed = postList.IsSubscribed;
+            CanSubscribe = postList.CanSubscribe;
+            IsLocked = postList.IsLocked;
+            CanReply = postList.CanReply;
+            Posts = postList.Posts;
+            Breadcrumbs = postList.Breadcrumbs;
+            Position = position;
+        }
 
         [XmlRpcMember("position")] 
-        public int Position;
+        public int Position; 
     }
 }

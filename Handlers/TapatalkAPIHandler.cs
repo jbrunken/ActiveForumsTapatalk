@@ -1120,7 +1120,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         }
 
         [XmlRpcMethod("get_thread_by_unread")]
-        public PostListStructure GetThreadByUnread(params object[] parameters)
+        public PostListPlusPositionStructure GetThreadByUnread(params object[] parameters)
         {
             if (parameters.Length < 1)
                 throw new XmlRpcFaultException(100, "Invalid Method Signature");
@@ -1132,7 +1132,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             return GetThreadByUnread(topicId, postsPerRequest, returnHtml);
         }
 
-        private PostListStructure GetThreadByUnread(int topicId, int postsPerRequest, bool returnHtml)
+        private PostListPlusPositionStructure GetThreadByUnread(int topicId, int postsPerRequest, bool returnHtml)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -1147,9 +1147,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var result = GetThread(topicId, startIndex, endIndex, returnHtml);
 
-            result.Position = postIndex;
+            // Post index is zero base, so we need to add 1 before sending it to Tapatalk
 
-            return result;
+            return new PostListPlusPositionStructure(result, postIndex + 1); //result;
         }
 
         [XmlRpcMethod("get_thread_by_post")]
@@ -1185,9 +1185,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var result = GetThread(postIndexResult.TopicId, startIndex, endIndex, returnHtml);
 
-            result.Position = postIndexResult.RowIndex;
+            // Post index is zero base, so we need to add 1 before sending it to Tapatalk
 
-            return result;
+            return new PostListPlusPositionStructure(result, postIndexResult.RowIndex + 1); //result;
         }
 
         [XmlRpcMethod("get_quote_post")]
@@ -1593,9 +1593,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
+            // Not fully implemented...  Disable for now.
+
             // for our purposes, we ignore the username and require userId
             // If we don't have a userid, pass back a anonymous user object
-            if(userId <= 0)
+            if(true || userId <= 0)
             {
                 return new XmlRpcStruct
                            {
@@ -2020,6 +2022,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             input = Regex.Replace(input, @"\s+", " ", RegexOptions.Multiline);
 
+            input = EncodeUnmatchedBrackets(input);
+
             var htmlBlock = new HtmlDocument();
             htmlBlock.LoadHtml(input);
 
@@ -2036,6 +2040,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 return input;
 
             input = Regex.Replace(input, @"\s+", " ", RegexOptions.Multiline);
+
+            input = EncodeUnmatchedBrackets(input);
 
             var htmlBlock = new HtmlDocument();
             htmlBlock.LoadHtml(input);
@@ -2065,8 +2071,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 // No action needed for these node types
                 case "#text":
                     var text = HttpUtility.HtmlDecode(node.InnerHtml);
-                    if (mode != ProcessModes.Quote)
-                        text = HttpContext.Current.Server.HtmlEncode(text);
+                    //if (mode != ProcessModes.Quote)
+                    //    text = HttpContext.Current.Server.HtmlEncode(text);
+                    text = text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
                     output.Append(text);
                     return;
 
@@ -2198,6 +2205,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     output.Append("[/url]");
 
                     return;
+
 
             }
 
@@ -2335,6 +2343,33 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var profilePath = string.Format(urlTemplate, request.Url.Scheme, request.Url.Host, VirtualPathUtility.ToAbsolute(profilePathTemplate));
 
             return string.Format("{0}?userId={1}&w=64&h=64", profilePath, userId);
+        }
+
+        private static string EncodeUnmatchedBrackets(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return input;
+
+            var sb = new StringBuilder(input);
+
+            var index = GetFirstUnmatchedBracket(input);
+
+            while(index >= 0)
+            {
+                var bracket = sb[index];
+                sb.Remove(index, 1);
+                sb.Insert(index, (bracket == '<') ? "&lt;" : "&gt;");
+
+                index = GetFirstUnmatchedBracket(sb.ToString());
+            }
+
+            return sb.ToString();
+        }
+
+        private static int GetFirstUnmatchedBracket(string text)
+        {
+            var m = Regex.Match(text, @"^(?>\<(?<X>)|\>(?<-X>)|(?!\<|\>).)+(?(X)(?!))");
+            return m.Length < text.Length ? m.Length : -1;
         }
 
         #endregion
