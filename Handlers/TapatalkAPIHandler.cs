@@ -38,6 +38,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var rpcstruct = new XmlRpcStruct
             {
+                {"sys_version", "5.0.4"},
                 {"version", "dev"}, 
                 {"is_open", aftContext.ModuleSettings.IsOpen}, 
                 {"api_level", "4"},
