@@ -3,7 +3,7 @@ Active Forums Tapatalk
 
 An add-on module for [Active Forums 5](https://github.com/jbrunken/ActiveForums) DotNetNuke module which adds support for the Tapatalk API. Tapatalk is a popular app for viewing online forums on mobile devices.
 
-*Note:* Tapatalk is a free service for forum administrators. There are no costs associated with having your forum accessible via the Tapatalk client. The Official tapatalk clients used to access forums are available in the various app stores and range in price from $0.99 to $4.99 for the "HD" tablet version. There is also an unofficial Tapatalk client available for Windows phone, but it has not been tested with this module.
+*Note:* Tapatalk is a free service for forum administrators. There are no costs associated with having your forum accessible via the Tapatalk client. The Official tapatalk clients used to access forums are available in the various app stores and range in price from FREE to $4.99 for the "HD" tablet version. 
 
 Requirements:
 
