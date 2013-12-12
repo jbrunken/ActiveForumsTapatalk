@@ -26,3 +26,4 @@ The currently supported features are:
 - Participated Topics View
 - Latest Topics (Timeline)
 - Mark as Read (Topic, Forum, All)
+- Search (Basic)
