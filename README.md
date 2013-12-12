@@ -10,7 +10,7 @@ Requirements:
 - DotNetNuke 7.0.0+
 - Active Forums 5.0.2+
 
-The currently supported features are:
+Currently Supported Features:
 
 - View Category/Forum List
 - View Normal Topic List
@@ -27,3 +27,8 @@ The currently supported features are:
 - Latest Topics (Timeline)
 - Mark as Read (Topic, Forum, All)
 - Search (Basic)
+
+Links:
+
+- [Installation & Configuration Guide](https://github.com/jbrunken/ActiveForumsTapatalk/wiki/Installation-&-Configuration-Instructions)
+- [Release History](https://github.com/jbrunken/ActiveForumsTapatalk/wiki/Release-HIstory)
