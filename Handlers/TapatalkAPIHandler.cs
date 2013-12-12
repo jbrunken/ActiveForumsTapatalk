@@ -70,7 +70,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"advanced_search", "0"},
                 {"searchid", "1"},
                 /* Not Yet Implemented */
-                {"can_unread", "0"},
+                {"can_unread", "1"},
                 {"conversation", "0"},
                 {"inbox_stat", "0"},
                 {"push", "0"},   
@@ -1533,7 +1533,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                 {
                                     {"result", result },
                                     {"result_text", resultText.ToBytes()}, 
-                                    {"can_upload_avatar", false}
+                                    {"can_upload_avatar", false},
+                                    {"can_pm", false}
                                 };
           
             if(result && forumUser != null)
