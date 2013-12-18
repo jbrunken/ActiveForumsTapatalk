@@ -49,7 +49,10 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
                 return new List<ForumSubscription>();
 
             IEnumerable<ForumSubscription> subscriptions;
-            
+
+
+            var context = DataContext.Instance();
+
             using (var ctx = DataContext.Instance())
             {
                 var rep = ctx.GetRepository<ForumSubscription>();
@@ -78,7 +81,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
             {
                 using (var ctx = DataContext.Instance())
                 {
-                    result = ctx.ExecuteSingleOrDefault<Permissions>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_Permissions", forumId);
+                    result = ctx.ExecuteSingleOrDefault<Permissions>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_Permissions", forumId);
                 }
 
                 if (result != null)
@@ -94,7 +97,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteSingleOrDefault<ForumTopicSummary>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicsSummary", portalId, moduleId, forumId, userId, mode);
+                result = ctx.ExecuteSingleOrDefault<ForumTopicSummary>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_TopicsSummary", portalId, moduleId, forumId, userId, mode);
             }
 
             return result;
@@ -106,7 +109,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_Topics", portalId, moduleId, forumId, userId, rowIndex, maxRows, mode);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Topics", portalId, moduleId, forumId, userId, rowIndex, maxRows, mode);
             }
 
             return result; 
@@ -118,7 +121,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                forumId = ctx.ExecuteScalar<int>(CommandType.StoredProcedure, "activeforumstapatalk_GetTopicForumId", topicId);
+                forumId = ctx.ExecuteScalar<int>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_GetTopicForumId", topicId);
             }
 
             return forumId; 
@@ -130,7 +133,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteSingleOrDefault<ForumPostSummary>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPostSummary", portalId, moduleId, forumId, topicId, userId);
+                result = ctx.ExecuteSingleOrDefault<ForumPostSummary>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_TopicPostSummary", portalId, moduleId, forumId, topicId, userId);
             }
 
             return result;
@@ -142,7 +145,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumPost>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPosts", portalId, moduleId, forumId, topicId, userId, rowIndex, maxRows, updateTrackingAndCounts);
+                result = ctx.ExecuteQuery<ForumPost>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_TopicPosts", portalId, moduleId, forumId, topicId, userId, rowIndex, maxRows, updateTrackingAndCounts);
             }
 
             return result;
@@ -154,7 +157,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteSingleOrDefault<ForumPost>(CommandType.StoredProcedure, "activeforumstapatalk_PostByContentId", portalId, moduleId, contentId);
+                result = ctx.ExecuteSingleOrDefault<ForumPost>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_PostByContentId", portalId, moduleId, contentId);
             }
 
             return result;
@@ -166,7 +169,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteSingleOrDefault<PostIndex>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPostIndex", contentId);
+                result = ctx.ExecuteSingleOrDefault<PostIndex>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_TopicPostIndex", contentId);
             }
 
             return result;  
@@ -178,7 +181,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteScalar<int?>(CommandType.StoredProcedure, "activeforumstapatalk_Forum_TopicPostIndexUnread", topicId, userId);
+                result = ctx.ExecuteScalar<int?>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forum_TopicPostIndexUnread", topicId, userId);
             }
 
             return result.HasValue ? result.Value : 1; 
@@ -190,7 +193,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Subscribed", portalId, moduleId, userId, forumIds);
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forums_Subscribed", portalId, moduleId, userId, forumIds);
             }
 
             return result;
@@ -202,7 +205,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Participated", portalId, moduleId, userId, forumIds);
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forums_Participated", portalId, moduleId, userId, forumIds);
             }
 
             return result;
@@ -214,7 +217,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "activeforumstapatalk_Forums_Status", portalId, moduleId, userId, forumIds);
+                result = ctx.ExecuteQuery<ListForum>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Forums_Status", portalId, moduleId, userId, forumIds);
             }
 
             return result;
@@ -226,7 +229,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Subscribed", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_Subscribed", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
             }
 
             return result; 
@@ -238,7 +241,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Unread", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_Unread", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
             }
 
             return result;
@@ -250,7 +253,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Participated", portalId, moduleId, userId, forumIds, participantUserId, rowIndex, maxRows);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_Participated", portalId, moduleId, userId, forumIds, participantUserId, rowIndex, maxRows);
             }
 
             return result;
@@ -262,7 +265,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Latest", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_Latest", portalId, moduleId, userId, forumIds, rowIndex, maxRows);
             }
 
             return result;
@@ -274,7 +277,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_Status", portalId, moduleId, userId, forumIds, topicIds);
+                result = ctx.ExecuteQuery<ForumTopic>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_Status", portalId, moduleId, userId, forumIds, topicIds);
             }
 
             return result;
@@ -285,7 +288,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                ctx.Execute(CommandType.StoredProcedure, "activeforumstapatalk_ForumTopics_MarkAsRead", portalId, moduleId, userId, forumIds, topicIds);
+                ctx.Execute(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_ForumTopics_MarkAsRead", portalId, moduleId, userId, forumIds, topicIds);
             }
 
             return true;
@@ -414,7 +417,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Classes
 
             using (var ctx = DataContext.Instance())
             {
-                result = ctx.ExecuteSingleOrDefault<UserInfo>(CommandType.StoredProcedure, "activeforumstapatalk_Users_Get", portalId, userId, currentUserId);
+                result = ctx.ExecuteSingleOrDefault<UserInfo>(CommandType.StoredProcedure, "{databaseOwner}{objectQualifier}activeforumstapatalk_Users_Get", portalId, userId, currentUserId);
             }
 
             return result;
