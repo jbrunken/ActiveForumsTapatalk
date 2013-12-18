@@ -69,8 +69,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"guest_search", aftContext.ModuleSettings.SearchPermission == ActiveForumsTapatalkModuleSettings.SearchPermissions.Everyone ? "1" : "0"},
                 {"advanced_search", "0"},
                 {"searchid", "1"},
-                /* Not Yet Implemented */
                 {"can_unread", "1"},
+                /* Not Yet Implemented */
+                
                 {"conversation", "0"},
                 {"inbox_stat", "0"},
                 {"push", "0"},   
@@ -87,8 +88,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"emoji", "0"},
                 {"get_smiles", "0"},
                 {"get_online_users", "0"},
+                {"search_user", "0"},
+                {"ignore_user", "0"},
+                {"user_recommended", "0"},
                 {"mark_pm_unread", "0"},
-                
+                {"get_activity", "0"},
                 {"get_alert", "0"},
                 {"advanced_delete", "0"},
                 {"default_smiles", "0"}
