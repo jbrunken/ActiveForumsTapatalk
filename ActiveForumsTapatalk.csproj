@@ -162,7 +162,9 @@
     <Content Include="ActiveForumsTapatalk.dnn" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="BuildScripts\ModulePackage.targets" />
+    <Content Include="BuildScripts\ModulePackage.targets">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="BuildScripts\MSBuild.Community.Tasks.Targets" />
   </ItemGroup>
   <ItemGroup>
@@ -211,5 +213,4 @@
   <Import Project="BuildScripts\ModulePackage.Targets" />
   <Target Name="AfterBuild" DependsOnTargets="PackageModule">
   </Target>
-  <Import Project="$(SolutionDir)\BuildScripts\MSBuild.Community.Tasks.targets" />
 </Project>

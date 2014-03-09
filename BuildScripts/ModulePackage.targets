@@ -14,6 +14,8 @@
     </XmlRead>
 
     <!--in VS 2013 we exclude the packages folder -->
+
+
     <ItemGroup>     
       <InstallInclude Include="**\*.ascx" Exclude="packages\**" />
       <InstallInclude Include="**\*.asmx" Exclude="packages\**" />
@@ -42,8 +44,6 @@
       <SourceInclude Include="**\*.txt" Exclude="**\obj\**;**\_ReSharper*\**;" />
       <SourceInclude Include="**\images\*.*" />
       <SourceInclude Include="**\*.cs" />
-	  <SourceInclude Include="**\Packages\**" />
-      <SourceInclude Include="**\*.cs.designer" />
       <SourceInclude Include="**\*.csproj" />
       <SourceInclude Include="**\*.targets" />
       <SourceInclude Include="**\*.sln" />
