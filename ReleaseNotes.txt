@@ -1,3 +1,5 @@
 ﻿<div class="License">
-	<p>See instructions on CodePlex: http://activeforumstapatalk.codeplex.com/documentation </p>
+	<p>Requirements: DNN 7.0.0, Active Forums 5.2.0
+	<p>Release Notes: https://github.com/jbrunken/ActiveForumsTapatalk/wiki/Release-HIstory </p>
+	<p>Installation Instructions: https://github.com/jbrunken/ActiveForumsTapatalk/wiki/Installation-&-Configuration-Instructions </p>
 </div>

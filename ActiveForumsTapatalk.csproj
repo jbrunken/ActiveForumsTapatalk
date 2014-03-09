@@ -54,9 +54,9 @@
       <HintPath>..\..\..\References\DNN 7.0.0\DotNetNuke.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="DotNetNuke.Modules.ActiveForums, Version=5.0.4.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="DotNetNuke.Modules.ActiveForums, Version=5.2.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\References\AF 5.0.4\DotNetNuke.Modules.ActiveForums.dll</HintPath>
+      <HintPath>..\..\..\References\AF 5.2.0\DotNetNuke.Modules.ActiveForums.dll</HintPath>
     </Reference>
     <Reference Include="DotNetNuke.Modules.ActiveForumsTapatalk.XmlRpc, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
