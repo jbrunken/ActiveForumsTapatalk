@@ -32,9 +32,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
             if (aftContext == null || aftContext.Module == null)
-                throw new XmlRpcFaultException(100, "Invalid Context"); 
+                throw new XmlRpcFaultException(100, "Invalid Context");
 
-            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false"); 
+            Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
             var rpcstruct = new XmlRpcStruct
             {
@@ -96,7 +96,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"get_alert", "0"},
                 {"advanced_delete", "0"},
                 {"default_smiles", "0"}
-            };        
+            };
 
             return rpcstruct;
 
@@ -296,11 +296,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 .OrderBy(o => o.SortOrder).ToList();
 
 
-            if(forumId.StartsWith("G"))
+            if (forumId.StartsWith("G"))
             {
                 var groupId = Convert.ToInt32(forumId.Substring(1));
-                
-                foreach(var forum in visibleForums.Where(f => f.ForumGroupId == groupId && f.ParentForumId == 0))
+
+                foreach (var forum in visibleForums.Where(f => f.ForumGroupId == groupId && f.ParentForumId == 0))
                 {
                     var forumStructure = new ForumStructure
                     {
@@ -359,7 +359,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var forumId = (parameters != null && parameters.Any()) ? Convert.ToString(parameters[0]) : "0";
 
-            if(!forumId.StartsWith("G")) // Don't do anything for groups
+            if (!forumId.StartsWith("G")) // Don't do anything for groups
                 DataProvider.Instance().Utility_MarkAllRead(aftContext.ModuleSettings.ForumModuleId, aftContext.UserId, int.Parse(forumId));
 
             return new XmlRpcStruct
@@ -428,8 +428,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             // Intersect requested forums with avialable forums
             var requestedForumIds = (parameters != null && parameters.Any())
-                                        ? ((object[]) parameters[0]).Select(Convert.ToInt32).Where(forumIdList.Contains)
-                                        : new int[] {};
+                                        ? ((object[])parameters[0]).Select(Convert.ToInt32).Where(forumIdList.Contains)
+                                        : new int[] { };
 
             // Convert the new list of forums back to a string for the proc.
             forumIds = requestedForumIds.Aggregate(string.Empty, (current, id) => current + (id.ToString() + ";"));
@@ -453,9 +453,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         #region Topic API
 
         [XmlRpcMethod("get_topic")]
-        public TopicListStructure  GetTopic(params object[] parameters)
+        public TopicListStructure GetTopic(params object[] parameters)
         {
-            if(parameters[0].ToString().StartsWith("G"))
+            if (parameters[0].ToString().StartsWith("G"))
             {
                 var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
@@ -476,7 +476,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             if (parameters.Length == 3)
                 return GetTopic(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]));
-            
+
             if (parameters.Length == 4)
                 return GetTopic(Convert.ToInt32(parameters[0]), Convert.ToInt32(parameters[1]), Convert.ToInt32(parameters[2]), parameters[3].ToString());
 
@@ -525,7 +525,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    AuthorName = GetAuthorName(mainSettings, t).ToBytes(),
                                                    CanSubscribe = canSubscribe,
                                                    ForumId = forumId.ToString(),
-                                                   HasNewPosts =  (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
+                                                   HasNewPosts = (t.LastReplyId < 0 && t.TopicId > t.UserLastTopicRead) || t.LastReplyId > t.UserLastReplyRead,
                                                    IsLocked = t.IsLocked,
                                                    IsSubscribed = t.SubscriptionType > 0,
                                                    LastReplyDate = t.LastReplyDate,
@@ -535,8 +535,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                                }).ToArray()
                                            };
-                                             
-                             
+
+
 
             return forumTopicsStructure;
         }
@@ -557,7 +557,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var attachmentIds = (attachmentIdObjArray != null)
                         ? attachmentIdObjArray.Select(Convert.ToString)
-                        : new string[] { }; 
+                        : new string[] { };
 
             return NewTopic(forumId, subject, body, prefixId, attachmentIds, groupId);
 
@@ -566,7 +566,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         private XmlRpcStruct NewTopic(int forumId, string subject, string body, string prefixId, IEnumerable<string> attachmentIds, string groupId)
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
-            
+
             Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
             var portalId = aftContext.Module.PortalID;
@@ -577,7 +577,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var forumInfo = fc.GetForum(portalId, forumModuleId, forumId);
 
             // Verify Post Permissions
-            if(!ActiveForums.Permissions.HasPerm(forumInfo.Security.Create, aftContext.ForumUser.UserRoles))
+            if (!ActiveForums.Permissions.HasPerm(forumInfo.Security.Create, aftContext.ForumUser.UserRoles))
             {
                 return new XmlRpcStruct
                                 {
@@ -589,13 +589,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             // Build User Permissions
             var canModApprove = ActiveForums.Permissions.HasPerm(forumInfo.Security.ModApprove, aftContext.ForumUser.UserRoles);
             var canTrust = ActiveForums.Permissions.HasPerm(forumInfo.Security.Trust, aftContext.ForumUser.UserRoles);
-            var userProfile =  aftContext.UserId > 0 ? aftContext.ForumUser.Profile : new UserProfileInfo { TrustLevel = -1 };
+            var userProfile = aftContext.UserId > 0 ? aftContext.ForumUser.Profile : new UserProfileInfo { TrustLevel = -1 };
             var userIsTrusted = Utilities.IsTrusted((int)forumInfo.DefaultTrustValue, userProfile.TrustLevel, canTrust, forumInfo.AutoTrustLevel, userProfile.PostCount);
 
             // Determine if the post should be approved
             var isApproved = !forumInfo.IsModerated || userIsTrusted || canModApprove;
 
-            var mainSettings = new SettingsInfo {MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId)};
+            var mainSettings = new SettingsInfo { MainSettings = new Entities.Modules.ModuleController().GetModuleSettings(forumModuleId) };
 
             var dnnUser = Entities.Users.UserController.GetUserById(portalId, aftContext.UserId);
 
@@ -637,7 +637,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var topicId = tc.TopicSave(portalId, ti);
             ti = tc.Topics_Get(portalId, forumModuleId, topicId, forumId, -1, false);
 
-            if(ti == null)
+            if (ti == null)
             {
                 return new XmlRpcStruct
                                 {
@@ -667,14 +667,14 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     new SubscriptionController().Subscription_Update(portalId, forumModuleId, forumId, topicId, (int)userProfile.PrefSubscriptionType, aftContext.UserId, aftContext.ForumUser.UserRoles);
                 }
 
-                if(isApproved)
+                if (isApproved)
                 {
                     // Send User Notifications
                     Subscriptions.SendSubscriptions(portalId, forumModuleId, aftContext.ModuleSettings.ForumTabId, forumInfo, topicId, 0, ti.Content.AuthorId);
 
                     // Add Journal entry
                     var forumTabId = aftContext.ModuleSettings.ForumTabId;
-                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, -1, forumInfo.SocialGroupId);
                     new Social().AddTopicToJournal(portalId, forumModuleId, forumId, topicId, ti.Author.AuthorId, fullURL, ti.Content.Subject, string.Empty, ti.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
@@ -701,11 +701,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
                     NotificationsController.Instance.SendNotification(notification, portalId, null, mods);
                 }
- 
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Services.Exceptions.Exceptions.LogException(ex); 
+                Services.Exceptions.Exceptions.LogException(ex);
             }
 
 
@@ -716,7 +716,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"topic_id", ti.TopicId.ToString()},
             };
 
-            if(!isApproved)
+            if (!isApproved)
                 result.Add("state", 1);
 
             return result;
@@ -748,12 +748,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var userId = aftContext.UserId;
 
             // If user is not signed in, don't return any unread topics
-            if(userId <= 0)
+            if (userId <= 0)
                 return new XmlRpcStruct
                        {
                            {"total_topic_num", 0},
                            {"topics", new object[]{}}
-                       };  
+                       };
 
 
             // Build a list of forums the user has access to
@@ -786,13 +786,13 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    DateCreated = t.LastReplyDate,
                                                    Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                                }).ToArray()}
-                       };  
+                       };
         }
 
         [XmlRpcMethod("get_participated_topic")]
         public XmlRpcStruct GetParticipatedTopics(params object[] parameters)
         {
-            var userName = parameters.Any() ?  Encoding.UTF8.GetString((byte[])parameters[0]) : null;
+            var userName = parameters.Any() ? Encoding.UTF8.GetString((byte[])parameters[0]) : null;
             var startIndex = parameters.Count() > 1 ? Convert.ToInt32(parameters[1]) : 0;
             var endIndex = parameters.Count() > 2 ? Convert.ToInt32(parameters[2]) : startIndex + 49;
             var searchId = parameters.Count() > 3 ? Convert.ToString(parameters[3]) : null;
@@ -815,7 +815,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var userId = aftContext.UserId;
 
             // Lookup the user id for the username if needed
-            if(participantUserId <= 0)
+            if (participantUserId <= 0)
             {
                 var forumUser = new ActiveForums.UserController().GetUser(aftContext.Portal.PortalID, aftContext.ModuleSettings.ForumModuleId, participantUserName);
 
@@ -824,7 +824,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             }
 
             // If we don't have a valid participant user id at this point, return invalid result
-            if(participantUserId <= 0)
+            if (participantUserId <= 0)
             {
                 return new XmlRpcStruct
                            {
@@ -941,7 +941,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         [XmlRpcMethod("get_topic_status")]
         public XmlRpcStruct GetTopicStatus(params object[] parameters)
         {
-            var topicIds = parameters.Any() ? ((object[])parameters[0]).Select(Convert.ToInt32) : new int[]{};
+            var topicIds = parameters.Any() ? ((object[])parameters[0]).Select(Convert.ToInt32) : new int[] { };
 
             return GetTopicStatus(topicIds);
         }
@@ -986,7 +986,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         [XmlRpcMethod("mark_topic_read")]
         public XmlRpcStruct MarkTopicsRead(params object[] parameters)
         {
-            var topicIds = ((object[]) parameters[0]).Select(Convert.ToInt32);
+            var topicIds = ((object[])parameters[0]).Select(Convert.ToInt32);
 
             return MarkTopicsRead(topicIds);
         }
@@ -1051,7 +1051,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var forumId = fc.GetTopicForumId(topicId);
 
-            if(forumId <= 0)
+            if (forumId <= 0)
                 throw new XmlRpcFaultException(100, "Invalid Topic");
 
             var fp = fc.GetForumPermissions(forumId);
@@ -1075,7 +1075,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                   };
 
             // If we're in a sub forum, add the parent to the breadcrumb
-            if(forumPostSummary.ParentForumId > 0)
+            if (forumPostSummary.ParentForumId > 0)
                 breadCrumbs.Add(new BreadcrumbStructure
                 {
                     ForumId = forumPostSummary.ParentForumId.ToString(),
@@ -1095,7 +1095,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var profilePath = string.Format("{0}://{1}{2}", Context.Request.Url.Scheme, Context.Request.Url.Host, VirtualPathUtility.ToAbsolute("~/profilepic.ashx"));
 
             var result = new PostListStructure
-                             { 
+                             {
                                  PostCount = forumPostSummary.ReplyCount + 1,
                                  CanReply = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanReply),
                                  CanSubscribe = ActiveForums.Permissions.HasPerm(aftContext.ForumUser.UserRoles, fp.CanSubscribe),
@@ -1107,18 +1107,18 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                  TopicId = topicId,
                                  Posts = forumPosts.Select(p => new PostStructure
                                     {
-                                          PostID = p.ContentId.ToString(),
-                                          AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
-                                          AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
-                                          AuthorId = p.AuthorId.ToString(),
-                                          Body =  HtmlToTapatalk(p.Body, returnHtml).ToBytes(),
-                                          CanEdit = false, // TODO: Fix this
-                                          IsOnline = p.IsUserOnline,
-                                          PostDate = p.DateCreated,
-                                          Subject = p.Subject.ToBytes()
+                                        PostID = p.ContentId.ToString(),
+                                        AuthorAvatarUrl = string.Format("{0}?userId={1}&w=64&h=64", profilePath, p.AuthorId),
+                                        AuthorName = GetAuthorName(mainSettings, p).ToBytes(),
+                                        AuthorId = p.AuthorId.ToString(),
+                                        Body = HtmlToTapatalk(p.Body, returnHtml).ToBytes(),
+                                        CanEdit = false, // TODO: Fix this
+                                        IsOnline = p.IsUserOnline,
+                                        PostDate = p.DateCreated,
+                                        Subject = p.Subject.ToBytes()
                                     }).ToArray(),
                                  Breadcrumbs = breadCrumbs.ToArray()
-                              
+
                              };
 
             return result;
@@ -1146,7 +1146,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var postIndex = new AFTForumController().GetForumPostIndexUnread(topicId, aftContext.UserId);
 
-            var pageIndex = (postIndex - 1)/postsPerRequest;
+            var pageIndex = (postIndex - 1) / postsPerRequest;
             var startIndex = pageIndex * postsPerRequest;
             var endIndex = startIndex + postsPerRequest - 1;
 
@@ -1180,8 +1180,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 throw new XmlRpcFaultException(100, "Invalid Context");
 
             var postIndexResult = new AFTForumController().GetForumPostIndex(postId);
-                
-            if(postIndexResult == null)
+
+            if (postIndexResult == null)
                 throw new XmlRpcFaultException(100, "Post Not Found");
 
             var pageIndex = (postIndexResult.RowIndex - 1) / postsPerRequest;
@@ -1229,7 +1229,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var contentIds = postIds.Split('-').Select(int.Parse).ToList();
 
-            if(contentIds.Count > 25) // Let's be reasonable
+            if (contentIds.Count > 25) // Let's be reasonable
                 throw new XmlRpcFaultException(100, "Bad Request");
 
 
@@ -1276,16 +1276,16 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var forumId = Convert.ToInt32(parameters[0]);
             var topicId = Convert.ToInt32(parameters[1]);
-            var subject = Encoding.UTF8.GetString((byte[]) parameters[2]);
+            var subject = Encoding.UTF8.GetString((byte[])parameters[2]);
             var body = Encoding.UTF8.GetString((byte[])parameters[3]);
 
-            var attachmentIdObjArray = parameters.Length >= 5 ? (object[]) parameters[4] : null;
+            var attachmentIdObjArray = parameters.Length >= 5 ? (object[])parameters[4] : null;
             var groupId = parameters.Length >= 6 ? Convert.ToString(parameters[5]) : null;
             var returnHtml = parameters.Length >= 7 && Convert.ToBoolean(parameters[6]);
 
             var attachmentIds = (attachmentIdObjArray != null)
                                     ? attachmentIdObjArray.Select(Convert.ToString)
-                                    : new string[] {}; 
+                                    : new string[] { };
 
             return Reply(forumId, topicId, subject, body, attachmentIds, groupId, returnHtml);
         }
@@ -1388,7 +1388,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     // Add Journal entry
                     var forumTabId = aftContext.ModuleSettings.ForumTabId;
                     var ti = new TopicsController().Topics_Get(portalId, forumModuleId, topicId, forumId, -1, false);
-                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, forumInfo.SocialGroupId);
+                    var fullURL = new ControlUtils().BuildUrl(forumTabId, forumModuleId, forumInfo.ForumGroup.PrefixURL, forumInfo.PrefixURL, forumInfo.ForumGroupId, forumInfo.ForumID, topicId, ti.TopicUrl, -1, -1, string.Empty, 1, replyId, forumInfo.SocialGroupId);
                     new Social().AddReplyToJournal(portalId, forumModuleId, forumId, topicId, ri.ReplyId, ri.Author.AuthorId, fullURL, ri.Content.Subject, string.Empty, ri.Content.Body, forumInfo.ActiveSocialSecurityOption, forumInfo.Security.Read, forumInfo.SocialGroupId);
                 }
                 else
@@ -1435,7 +1435,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"attachments", new {}}*/
             };
 
-            if(!isApproved)
+            if (!isApproved)
                 result.Add("state", 1);
 
             return result;
@@ -1452,9 +1452,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct Login(params object[] parameters)
         {
             if (parameters.Length < 2)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
-            var login = Encoding.UTF8.GetString((byte[]) parameters[0]);
+            var login = Encoding.UTF8.GetString((byte[])parameters[0]);
             var password = Encoding.UTF8.GetString((byte[])parameters[1]);
 
             return Login(login, password);
@@ -1464,8 +1464,8 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         {
             var aftContext = ActiveForumsTapatalkModuleContext.Create(Context);
 
-            if(aftContext == null || aftContext.Portal == null)
-                throw new XmlRpcFaultException(100, "Invalid Context"); 
+            if (aftContext == null || aftContext.Portal == null)
+                throw new XmlRpcFaultException(100, "Invalid Context");
 
             var loginStatus = UserLoginStatus.LOGIN_FAILURE;
 
@@ -1474,7 +1474,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             var result = false;
             var resultText = string.Empty;
 
-            switch(loginStatus)
+            switch (loginStatus)
             {
                 case UserLoginStatus.LOGIN_SUCCESS:
                 case UserLoginStatus.LOGIN_SUPERUSER:
@@ -1500,12 +1500,12 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             User forumUser = null;
 
-            if(result)
-            { 
+            if (result)
+            {
                 // Get the User
                 var userInfo = Entities.Users.UserController.GetUserByName(aftContext.Module.PortalID, login);
 
-                if(userInfo == null)
+                if (userInfo == null)
                 {
                     result = false;
                     resultText = "Unknown Login Error";
@@ -1513,7 +1513,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 else
                 {
                     // Set Login Cookie
-                    var expiration = DateTime.Now.Add(FormsAuthentication.Timeout); 
+                    var expiration = DateTime.Now.Add(FormsAuthentication.Timeout);
 
                     var ticket = new FormsAuthenticationTicket(1, login, DateTime.Now, expiration, false, userInfo.UserID.ToString());
                     var authCookie = new HttpCookie(aftContext.AuthCookieName, FormsAuthentication.Encrypt(ticket))
@@ -1529,9 +1529,9 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 }
             }
 
-            Context.Response.AddHeader("Mobiquo_is_login", result ? "true" : "false"); 
+            Context.Response.AddHeader("Mobiquo_is_login", result ? "true" : "false");
 
-            
+
 
             var rpcstruct = new XmlRpcStruct
                                 {
@@ -1540,16 +1540,16 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                     {"can_upload_avatar", false},
                                     {"can_pm", false}
                                 };
-          
-            if(result && forumUser != null)
+
+            if (result && forumUser != null)
             {
                 rpcstruct.Add("user_id", forumUser.UserId.ToString());
                 rpcstruct.Add("username", forumUser.UserName.ToBytes());
                 rpcstruct.Add("email", forumUser.Email.ToBytes());
-                rpcstruct.Add("usergroup_id", new string[]{});
+                rpcstruct.Add("usergroup_id", new string[] { });
                 rpcstruct.Add("post_count", forumUser.PostCount);
                 rpcstruct.Add("icon_url", GetAvatarUrl(forumUser.UserId));
-                
+
             }
 
 
@@ -1580,7 +1580,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct GetUser(params object[] parameters)
         {
             if (parameters.Length < 1)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var username = Encoding.UTF8.GetString((byte[])parameters[0]);
             var userIdStr = parameters.Length >= 2 ? Convert.ToString(parameters[1]) : null;
@@ -1603,7 +1603,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             // for our purposes, we ignore the username and require userId
             // If we don't have a userid, pass back a anonymous user object
-            if(true || userId <= 0)
+            if (true || userId <= 0)
             {
                 return new XmlRpcStruct
                            {
@@ -1623,14 +1623,14 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             const bool allowPM = false; //TODO : Tie in with PM's
             const bool acceptFollow = false;
 
-            if(user == null)
+            if (user == null)
             {
                 return new XmlRpcStruct
                            {
                                { "user_id", userId.ToString() },
                                { "user_name", username.ToBytes() },
                                { "post_count", 1 }
-                           }; 
+                           };
             }
 
             var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
@@ -1663,7 +1663,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct SubscribeForum(params object[] parameters)
         {
             if (parameters.Length < 1)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var forumId = Convert.ToInt32(parameters[0]);
 
@@ -1674,7 +1674,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct SubscribeTopic(params object[] parameters)
         {
             if (parameters.Length < 1)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var topicId = Convert.ToInt32(parameters[0]);
 
@@ -1685,7 +1685,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct UnsubscribeForum(params object[] parameters)
         {
             if (parameters.Length < 1)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var forumId = Convert.ToInt32(parameters[0]);
 
@@ -1696,7 +1696,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         public XmlRpcStruct UnsubscribeTopic(params object[] parameters)
         {
             if (parameters.Length < 1)
-                throw new XmlRpcFaultException(100, "Invalid Method Signature"); 
+                throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var topicId = Convert.ToInt32(parameters[0]);
 
@@ -1713,21 +1713,21 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             Context.Response.AddHeader("Mobiquo_is_login", aftContext.UserId > 0 ? "true" : "false");
 
             if (!forumId.HasValue && !topicId.HasValue)
-                return new XmlRpcStruct{{"result", "0"},{"result_text", "Bad Request".ToBytes()}};
+                return new XmlRpcStruct { { "result", "0" }, { "result_text", "Bad Request".ToBytes() } };
 
 
             var portalId = aftContext.Module.PortalID;
             var forumModuleId = aftContext.ModuleSettings.ForumModuleId;
 
             // Look up the forum Id if needed
-            if(!forumId.HasValue)
+            if (!forumId.HasValue)
             {
                 var ti = new TopicsController().Topics_Get(portalId, forumModuleId, topicId.Value);
-                if(ti == null)
+                if (ti == null)
                     return new XmlRpcStruct { { "result", false }, { "result_text", "Topic Not Found".ToBytes() } };
 
                 var post = new AFTForumController().GetForumPost(portalId, forumModuleId, ti.ContentId);
-                if(post == null)
+                if (post == null)
                     return new XmlRpcStruct { { "result", false }, { "result_text", "Topic Post Not Found".ToBytes() } };
 
                 forumId = post.ForumId;
@@ -1745,7 +1745,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 {"result_text", string.Empty.ToBytes()}, 
             };
         }
-    
+
         [XmlRpcMethod("get_subscribed_forum")]
         public XmlRpcStruct GetSubscribedForums()
         {
@@ -1839,17 +1839,17 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                                    DateCreated = t.LastReplyDate,
                                                    Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                                }).ToArray()}
-                       };   
+                       };
         }
 
         #endregion
 
         #region Search API
-        
+
         [XmlRpcMethod("search_topic")]
         public XmlRpcStruct SearchTopics(params object[] parameters)
         {
-            if(parameters.Length == 0)
+            if (parameters.Length == 0)
                 throw new XmlRpcFaultException(100, "Invalid Method Signature");
 
             var searchString = Encoding.UTF8.GetString((byte[])parameters[0]);
@@ -1875,7 +1875,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             // Verify Search Permissions
             var searchPermissions = aftContext.ModuleSettings.SearchPermission;
-            if(searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.Disabled || (userId <= 0 && searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.RegisteredUsers ))
+            if (searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.Disabled || (userId <= 0 && searchPermissions == ActiveForumsTapatalkModuleSettings.SearchPermissions.RegisteredUsers))
                 throw new XmlRpcFaultException(102, "Insufficent Search Permissions");
 
             // Build a list of forums the user has access to
@@ -1912,7 +1912,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                                         DateCreated = t.LastReplyDate,
                                         Title = HttpUtility.HtmlDecode(t.Subject + string.Empty).ToBytes()
                                     }).ToArray()}
-            };  
+            };
         }
 
         [XmlRpcMethod("search_post")]
@@ -2003,11 +2003,11 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
             input = input.Replace(">", "&gt;");
 
             input = input.Replace("\r\n", "\n");
-            input = input.Trim(new [] {' ', '\n', '\r', '\t'}).Replace("\n", "<br />");
+            input = input.Trim(new[] { ' ', '\n', '\r', '\t' }).Replace("\n", "<br />");
 
             input = Regex.Replace(input, @"\[quote\=\'([^\]]+?)\'\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
             input = Regex.Replace(input, @"\[quote\=\""([^\]]+?)\""\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            input = Regex.Replace(input, @"\[quote\=([^\]]+?)\]",  "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            input = Regex.Replace(input, @"\[quote\=([^\]]+?)\]", "<blockquote class='afQuote'><span class='afQuoteTitle'>$1</span><br />", RegexOptions.IgnoreCase | RegexOptions.Multiline);
             input = Regex.Replace(input, @"\[quote\]", "<blockquote class='afQuote'>", RegexOptions.IgnoreCase);
             input = Regex.Replace(input, @"\[\/quote\]", "</blockquote>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
             input = Regex.Replace(input, @"\[img\](.+?)\[\/img\]", "<img src='$1' />", RegexOptions.IgnoreCase);
@@ -2094,27 +2094,27 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 case "ol":
                 case "ul":
 
-                    if(mode != ProcessModes.Normal)
+                    if (mode != ProcessModes.Normal)
                         return;
 
                     output.Append(lineBreak);
 
                     var listItemNodes = node.SelectNodes("//li");
 
-                    for(var i = 0;  i < listItemNodes.Count; i++)
+                    for (var i = 0; i < listItemNodes.Count; i++)
                     {
                         var listItemNode = listItemNodes[i];
                         output.AppendFormat("{0} ", node.Name == "ol" ? (i + 1).ToString() : "*");
                         ProcessNodes(output, listItemNode.ChildNodes, mode, returnHtml);
                         output.Append(lineBreak);
                     }
-                    
+
                     return;
 
                 case "li":
 
-                    if(mode == ProcessModes.Quote)
-                        return; 
+                    if (mode == ProcessModes.Quote)
+                        return;
 
                     output.Append("* ");
                     ProcessNodes(output, node.ChildNodes, mode, returnHtml);
@@ -2129,7 +2129,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                 case "b":
                 case "strong":
 
-                    if(mode != ProcessModes.Quote)
+                    if (mode != ProcessModes.Quote)
                     {
                         output.Append("<b>");
                         ProcessNodes(output, node.ChildNodes, mode, returnHtml);
@@ -2145,7 +2145,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     return;
 
                 case "i":
-                    if(mode != ProcessModes.Quote)
+                    if (mode != ProcessModes.Quote)
                     {
                         output.Append("<i>");
                         ProcessNodes(output, node.ChildNodes, mode, returnHtml);
@@ -2162,7 +2162,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
                 case "blockquote":
 
-                    if(mode != ProcessModes.Normal)
+                    if (mode != ProcessModes.Normal)
                         return;
 
                     output.Append("[quote]");
@@ -2190,10 +2190,10 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                     if (!url.ToLower().StartsWith("http"))
                     {
                         var rootDirectory = url.StartsWith("/") ? string.Empty : "/";
-                        url = string.Format("{0}://{1}{2}{3}", request.Url.Scheme, request.Url.Host, rootDirectory,  url);
+                        url = string.Format("{0}://{1}{2}{3}", request.Url.Scheme, request.Url.Host, rootDirectory, url);
                     }
 
-                    if(mode == ProcessModes.Quote && isEmoticon)
+                    if (mode == ProcessModes.Quote && isEmoticon)
                         return;
 
                     output.AppendFormat(isEmoticon ? "<img src='{0}' />" : "[img]{0}[/img]", url);
@@ -2207,7 +2207,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
                         return;
 
                     output.AppendFormat("[url={0}]", href.Value);
-                    ProcessNodes(output, node.ChildNodes, ProcessModes.TextOnly, returnHtml); 
+                    ProcessNodes(output, node.ChildNodes, ProcessModes.TextOnly, returnHtml);
                     output.Append("[/url]");
 
                     return;
@@ -2360,7 +2360,7 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
 
             var index = GetFirstUnmatchedBracket(input);
 
-            while(index >= 0)
+            while (index >= 0)
             {
                 var bracket = sb[index];
                 sb.Remove(index, 1);
@@ -2381,4 +2381,4 @@ namespace DotNetNuke.Modules.ActiveForumsTapatalk.Handlers
         #endregion
 
     }
-} 
+}
